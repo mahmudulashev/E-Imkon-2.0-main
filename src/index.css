@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brutal-black: #1a1a1a;
+  --paper-white: #fdfaf3;
+  --accent-indigo: #6366f1;
+  --focus-ring: #fbbf24;
+  --base-font-size: 15px;
+  --text-color: #0f172a;
+  --bg-color: #fdfaf3;
+  --card-bg: #ffffff;
+  --card-border: #1a1a1a;
+  --btn-bg: #ffffff;
+  --btn-text: #1a1a1a;
+  --highlight: #fde047;
+}
+
+html {
+  font-size: var(--base-font-size);
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background-color: var(--paper-white);
+  overflow-x: hidden;
+}
+
+.contrast-normal {
+  color: var(--text-color);
+  background-color: var(--bg-color);
+}
+
+.contrast-high {
+  --text-color: #fbbf24;
+  --bg-color: #000000;
+  --card-bg: #000000;
+  --card-border: #fbbf24;
+  --btn-bg: #000000;
+  --btn-text: #fbbf24;
+  --highlight: #22d3ee;
+  color: var(--text-color);
+  background-color: var(--bg-color);
+}
+
+.contrast-high * {
+  color: var(--text-color) !important;
+}
+
+.contrast-high .brutal-card {
+  background: var(--card-bg) !important;
+  border-color: var(--card-border) !important;
+  box-shadow: 8px 8px 0px 0px var(--card-border) !important;
+}
+
+.contrast-high .brutal-btn {
+  background: var(--btn-bg) !important;
+  color: var(--btn-text) !important;
+  border-color: var(--card-border) !important;
+  box-shadow: 4px 4px 0px 0px var(--card-border) !important;
+}
+
+.contrast-high .brutal-btn:active {
+  box-shadow: 0px 0px 0px 0px var(--card-border) !important;
+}
+
+h1,
+h2,
+.handwritten {
+  font-family: 'Nunito', sans-serif;
+}
+
+.font-main {
+  font-family: 'Nunito', sans-serif;
+}
+
+.brutal-card {
+  background: white;
+  border: 4px solid var(--brutal-black);
+  box-shadow: 8px 8px 0px 0px var(--brutal-black);
+  transition: all 0.2s cubic-bezier(.4,0,.2,1);
+  border-radius: 4px;
+}
+
+.brutal-card:hover,
+.brutal-card:focus-within {
+  transform: translate(-3px, -3px);
+  box-shadow: 12px 12px 0px 0px var(--brutal-black);
+}
+
+.brutal-btn {
+  border: 3px solid var(--brutal-black);
+  box-shadow: 4px 4px 0px 0px var(--brutal-black);
+  background: white;
+  font-weight: 800;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.1s;
+  position: relative;
+}
+
+.brutal-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px 0px var(--brutal-black);
+}
+
+/* Kuchli fokus ko'rinishi */
+*:focus-visible {
+  outline: 6px solid var(--focus-ring) !important;
+  outline-offset: 4px !important;
+  box-shadow: 0 0 0 8px var(--brutal-black) !important;
+}
+
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  background: #fbbf24;
+  color: black;
+  padding: 1rem;
+  z-index: 1000;
+  font-weight: bold;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+.marker-yellow {
+  background: linear-gradient(180deg, rgba(255,255,255,0) 50%, var(--highlight) 50%);
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--paper-white);
+  border-left: 2px solid var(--brutal-black);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--brutal-black);
+  border: 2px solid var(--paper-white);
+}
