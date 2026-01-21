@@ -68,6 +68,26 @@ export const playSoundCue = (type: 'success' | 'click' | 'error' | 'nav', ctx: A
   osc.stop(now + 0.3);
 };
 
+const normalizeUzbekTtsText = (input: string) => {
+  let text = input;
+  const replacements: Array<[RegExp, string]> = [
+    [/\bAI\b/gi, 'ay ay'],
+    [/\bTTS\b/gi, 'ti ti es'],
+    [/\bE-?Imkon\b/gi, 'e imkon'],
+    [/\bTutor\b/gi, 'tyutor'],
+    [/\bFrontend\b/gi, 'fron tend'],
+    [/\bHTML\b/gi, 'eych ti em el'],
+    [/\bCSS\b/gi, 'si es es'],
+    [/\bReact\b/gi, 'riakt'],
+  ];
+
+  replacements.forEach(([pattern, value]) => {
+    text = text.replace(pattern, value);
+  });
+
+  return text;
+};
+
 export const generateSpeech = async (text: string) => {
   if (!text || !text.trim()) return null;
   try {
@@ -85,8 +105,10 @@ export const generateSpeech = async (text: string) => {
       return ttsCache.get(cacheKey) || null;
     }
     const ai = new GoogleGenAI({ apiKey });
-    const cleanText = text.replace(/([0-9]+)/g, " $1 "); 
-    const prompt = `O'zbek tilida aniq va ravon o'qing: ${cleanText}`;
+    const cleanText = normalizeUzbekTtsText(text.replace(/([0-9]+)/g, " $1 "));
+    const prompt = `O'zbek tili ona tilida gapiradigan suxandon sifatida o'qing. 
+Matnni o'zbekcha talaffuz bilan, tabiiy ohang va to'g'ri urg'u bilan ayting. 
+Inglizcha yoki texnik atamalarni ham o'zbekcha talaffuzga moslab o'qing: ${cleanText}`;
     
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
