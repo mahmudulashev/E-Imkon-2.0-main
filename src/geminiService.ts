@@ -115,9 +115,9 @@ const normalizeUzbekTtsText = (input: string) => {
 };
 
 const TTS_MODELS = [
-  "gemini-2.5-pro-tts",
   "gemini-2.5-flash-preview-tts",
-  "gemini-2.5-flash-tts"
+  "gemini-2.5-flash-tts",
+  "gemini-2.5-pro-tts"
 ];
 
 export const generateSpeech = async (text: string) => {
