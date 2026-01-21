@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240">
+  <rect width="400" height="240" fill="#e2e8f0"/>
+  <rect x="24" y="24" width="352" height="192" rx="18" fill="#ffffff" stroke="#1a1a1a" stroke-width="6"/>
+  <rect x="60" y="70" width="120" height="90" fill="#c7d2fe" stroke="#1a1a1a" stroke-width="4"/>
+  <rect x="200" y="70" width="140" height="40" fill="#fde68a" stroke="#1a1a1a" stroke-width="4"/>
+  <rect x="200" y="120" width="140" height="40" fill="#bbf7d0" stroke="#1a1a1a" stroke-width="4"/>
+  <text x="200" y="190" text-anchor="middle" fill="#1a1a1a" font-family="Arial" font-weight="700" font-size="12">FLEX / GRID</text>
+</svg>

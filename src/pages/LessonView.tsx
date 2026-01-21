@@ -230,6 +230,21 @@ const LessonView: React.FC<Props> = ({ prefs }) => {
               <h3 className={`text-2xl font-black mb-4 uppercase italic tracking-tight transition-colors ${isPlaying && currentActiveChunk === idx ? 'text-indigo-600' : 'text-slate-400'}`}>
                 {section.title}
               </h3>
+              {section.image && (
+                <figure className="mb-5">
+                  <img
+                    src={section.image}
+                    alt={section.imageAlt || section.title}
+                    className="w-full max-w-2xl border-4 border-slate-900 shadow-[6px_6px_0px_0px_#1a1a1a]"
+                    loading="lazy"
+                  />
+                  {section.caption && (
+                    <figcaption className="text-xs font-black uppercase tracking-widest text-slate-500 mt-2">
+                      {section.caption}
+                    </figcaption>
+                  )}
+                </figure>
+              )}
               <p className={`text-2xl font-bold font-main leading-relaxed transition-all duration-300 rounded-lg ${isPlaying && currentActiveChunk === idx ? 'bg-indigo-50 border-l-8 border-indigo-600 pl-6 py-4 shadow-sm' : 'pl-2'}`} style={{ fontSize: `${prefs.fontSize}px` }}>
                 {section.content}
               </p>
