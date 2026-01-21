@@ -2,6 +2,32 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import { getGeminiApiKey } from "./env";
 
+const isQuotaError = (err: unknown) => {
+  const message = String((err as any)?.message || err || "");
+  return message.includes("RESOURCE_EXHAUSTED") || message.toLowerCase().includes("quota");
+};
+
+export const isTtsBlocked = () => Boolean((globalThis as any).__eImkonTtsBlocked);
+
+export const createSpeechUtterance = (text: string) => {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+  const utter = new SpeechSynthesisUtterance(text);
+  const voices = window.speechSynthesis.getVoices();
+  const pick =
+    voices.find(v => v.lang?.toLowerCase().startsWith('uz')) ||
+    voices.find(v => v.lang?.toLowerCase().startsWith('tr')) ||
+    voices.find(v => v.lang?.toLowerCase().startsWith('ru')) ||
+    voices.find(v => v.lang?.toLowerCase().startsWith('en')) ||
+    null;
+  if (pick) {
+    utter.voice = pick;
+    utter.lang = pick.lang;
+  }
+  utter.rate = 0.98;
+  utter.pitch = 1;
+  return utter;
+};
+
 // Guideline-compliant decode function
 export function decode(base64: string): Uint8Array {
   const binaryString = atob(base64);
@@ -88,9 +114,16 @@ const normalizeUzbekTtsText = (input: string) => {
   return text;
 };
 
+const TTS_MODELS = [
+  "gemini-2.5-flash-tts",
+  "gemini-2.5-pro-tts",
+  "gemini-2.5-flash-preview-tts"
+];
+
 export const generateSpeech = async (text: string) => {
   if (!text || !text.trim()) return null;
   try {
+    if (isTtsBlocked()) return null;
     const apiKey = getGeminiApiKey();
     if (!apiKey) {
       console.warn('Gemini API key topilmadi. .env faylini tekshiring.');
@@ -110,23 +143,40 @@ export const generateSpeech = async (text: string) => {
 Matnni o'zbekcha talaffuz bilan, tabiiy ohang va to'g'ri urg'u bilan ayting. 
 Inglizcha yoki texnik atamalarni ham o'zbekcha talaffuzga moslab o'qing: ${cleanText}`;
     
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: prompt.substring(0, 3000) }] }],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Zephyr' } 
+    let quotaBlocked = true;
+    for (const model of TTS_MODELS) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: [{ parts: [{ text: prompt.substring(0, 3000) }] }],
+          config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: 'Zephyr' }
+              }
+            }
           }
+        });
+
+        const audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
+        if (audio) {
+          ttsCache.set(cacheKey, audio);
+          return audio;
         }
+        quotaBlocked = false;
+      } catch (err) {
+        if (!isQuotaError(err)) quotaBlocked = false;
       }
-    });
-    
-    const audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
-    if (audio) ttsCache.set(cacheKey, audio);
-    return audio;
+    }
+    if (quotaBlocked) {
+      (globalThis as any).__eImkonTtsBlocked = true;
+    }
+    return null;
   } catch (err) {
+    if (isQuotaError(err)) {
+      (globalThis as any).__eImkonTtsBlocked = true;
+    }
     console.error("TTS API Error:", err);
     return null;
   }
