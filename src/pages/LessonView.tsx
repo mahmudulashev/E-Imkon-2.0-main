@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import type { UserPreferences } from '../types';
-import { generateSpeech, decode, decodeAudioData } from '../geminiService';
+import { generateSpeech, decode, decodeAudioData, createSpeechUtterance, isTtsBlocked } from '../geminiService';
 import { getGeminiApiKey } from '../env';
 import { MOCK_LESSONS } from '../mockData';
 import Quiz from '../components/Quiz';
@@ -81,6 +81,9 @@ const LessonView: React.FC<Props> = ({ prefs }) => {
       try { sourceNodeRef.current.stop(); } catch (e) {}
       sourceNodeRef.current = null;
     }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
     setIsPlaying(false);
     isPlayingRef.current = false;
     setLoadingAudio(false);
@@ -147,13 +150,23 @@ const LessonView: React.FC<Props> = ({ prefs }) => {
     if (isPlaying) {
       stopAudio();
     } else {
-      if (!getGeminiApiKey()) {
-        setAudioError("Ovozli o'qish uchun Gemini API key kerak. .env faylini tekshiring.");
-        return;
-      }
       setAudioError(null);
       setIsPlaying(true);
       isPlayingRef.current = true;
+      if (!getGeminiApiKey() || isTtsBlocked()) {
+        const text = lesson?.content?.sections
+          ?.map((section: any) => `${section.title}. ${section.content}`)
+          .join(' ');
+        const utter = text ? createSpeechUtterance(text) : null;
+        if (!utter) {
+          setAudioError("Ovozli o'qish uchun Gemini API key kerak. .env faylini tekshiring.");
+          stopAudio();
+          return;
+        }
+        utter.onend = () => stopAudio();
+        window.speechSynthesis.speak(utter);
+        return;
+      }
       await playChunk(currentChunkIdx.current);
     }
   };
