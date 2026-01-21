@@ -59,7 +59,7 @@ const CourseView: React.FC<Props> = ({ prefs }) => {
                 </div>
               </div>
               <div className="hidden md:block">
-                <span className="brutal-btn bg-slate-100 group-hover:bg-yellow-400 transition-colors" aria-hidden="true">BOSHLASH →</span>
+                <span className="brutal-btn bg-slate-100 group-hover:bg-yellow-400 text-black transition-colors" aria-hidden="true">BOSHLASH →</span>
               </div>
             </div>
           </Link>

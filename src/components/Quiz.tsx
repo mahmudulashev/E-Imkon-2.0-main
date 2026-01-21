@@ -160,7 +160,7 @@ const Quiz: React.FC<Props> = ({ questions, prefs }) => {
     return (
       <div className={`brutal-card p-12 text-center bg-indigo-600 border-slate-900`}>
         <h3 className="text-3xl font-black text-white mb-6 uppercase tracking-tight">Bilimingizni sinab ko'rasizmi?</h3>
-        <p className="text-indigo-100 font-bold mb-8 text-xl">Testni boshlash uchun quyidagi tugmani yoki <kbd className="bg-white text-indigo-600 px-2 py-1 rounded">Alt + T</kbd> ni bosing:</p>
+        <p className="text-black font-bold mb-8 text-xl">Testni boshlash uchun quyidagi tugmani yoki <kbd className="bg-white text-indigo-600 px-2 py-1 rounded">Alt + T</kbd> ni bosing:</p>
         <button 
           onClick={handleStartQuiz}
           className="brutal-btn bg-yellow-400 text-slate-900 py-6 px-12 text-2xl font-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:scale-105 transition-transform active:translate-x-1 active:translate-y-1"

@@ -85,7 +85,7 @@ const Home: React.FC<Props> = ({ prefs }) => {
               Har bir dars qisqa va tushunarli. AI yordamchi esa savollaringizga javob beradi.
             </p>
             <div className="mt-10 flex flex-wrap gap-4">
-              <div className="brutal-btn bg-slate-900 text-white border-4 rotate-1 font-black">🏁 BOSHLASH</div>
+              <div className="brutal-btn bg-slate-900 text-black border-4 rotate-1 font-black">🏁 BOSHLASH</div>
               <div className="brutal-btn bg-white text-black border-4 -rotate-1 font-black">📚 KURSLAR</div>
             </div>
           </div>
@@ -96,9 +96,9 @@ const Home: React.FC<Props> = ({ prefs }) => {
               <p className="text-sm font-bold text-slate-600 mt-2">O'qish yengil bo'ladi.</p>
             </div>
             <div className="brutal-card bg-slate-900 text-white p-6">
-              <div className="text-[10px] font-black uppercase tracking-widest text-white/60">Tinglash</div>
-              <div className="text-3xl font-black mt-2 text-white">Ovozli dars</div>
-              <p className="text-sm font-bold mt-2 text-white/80">Matnlarni o'zbekcha eshiting.</p>
+              <div className="text-[10px] font-black uppercase tracking-widest text-black">Tinglash</div>
+              <div className="text-3xl font-black mt-2 text-black">Ovozli dars</div>
+              <p className="text-sm font-bold mt-2 text-black">Matnlarni o'zbekcha eshiting.</p>
             </div>
             <div className="brutal-card bg-yellow-300 text-slate-900 p-6">
               <div className="text-[10px] font-black uppercase tracking-widest text-slate-600">Yo'lboshchi</div>
@@ -107,19 +107,6 @@ const Home: React.FC<Props> = ({ prefs }) => {
             </div>
           </div>
         </div>
-      </section>
-
-      <section className="brutal-card p-10 md:p-12 bg-white flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
-        <div>
-          <div className="text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Biznes model</div>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">To'lovlar va hamkorlik</h2>
-          <p className="text-lg md:text-xl font-bold text-slate-700 max-w-2xl">
-            Paketlar, to'lov usullari va hamkorlik shartlari haqida batafsil.
-          </p>
-        </div>
-        <Link to="/business-model" className="brutal-btn bg-yellow-400 text-black uppercase font-black">
-          Ko'rish →
-        </Link>
       </section>
 
       <footer className="text-center py-10 opacity-30 font-black uppercase text-xs tracking-[0.3em]">

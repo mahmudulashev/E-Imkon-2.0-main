@@ -241,8 +241,8 @@ const LessonView: React.FC<Props> = ({ prefs }) => {
       {lesson.content.quiz && <Quiz questions={lesson.content.quiz} prefs={prefs} />}
 
       <div className="flex justify-between items-center py-10 border-t-4 border-slate-900">
-        {prevLesson && <button onClick={() => navigate(`/lesson/${prevLesson.id}`)} className="brutal-btn bg-white">← OLDINGI DARS</button>}
-        {nextLesson ? <button onClick={() => navigate(`/lesson/${nextLesson.id}`)} className="brutal-btn bg-slate-900 text-white">KEYINGI DARS →</button> : <Link to="/" className="brutal-btn bg-green-500 text-white">TUGATISH 🎉</Link>}
+        {prevLesson && <button onClick={() => navigate(`/lesson/${prevLesson.id}`)} className="brutal-btn bg-white text-black">← OLDINGI DARS</button>}
+        {nextLesson ? <button onClick={() => navigate(`/lesson/${nextLesson.id}`)} className="brutal-btn bg-slate-900 text-black">KEYINGI DARS →</button> : <Link to="/" className="brutal-btn bg-green-500 text-white">TUGATISH 🎉</Link>}
       </div>
     </div>
   );

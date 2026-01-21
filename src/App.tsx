@@ -7,7 +7,6 @@ import CourseView from './pages/CourseView';
 import LessonView from './pages/LessonView';
 import Login from './pages/Login';
 import Documentation from './pages/Documentation';
-import BusinessModel from './pages/BusinessModel';
 import AccessibilityPanel from './components/AccessibilityPanel';
 import AITutor from './components/AITutor';
 import { generateSpeech, decode, decodeAudioData, playSoundCue } from './geminiService';
@@ -62,8 +61,7 @@ const AppContent: React.FC<{
       getCtx().then(ctx => playSoundCue('nav', ctx));
       const pageName = location.pathname === '/' ? 'Bosh sahifa' :
                        location.pathname.includes('lesson') ? 'Dars sahifasi' :
-                       location.pathname.includes('course') ? 'Kurs sahifasi' :
-                       location.pathname.includes('business-model') ? 'Biznes model' : 'Sahifa';
+                       location.pathname.includes('course') ? 'Kurs sahifasi' : 'Sahifa';
       speakGlobal(pageName + " yuklandi.");
     }
   }, [location.pathname, currentUser]);
@@ -117,7 +115,6 @@ const AppContent: React.FC<{
             {currentUser ? (
               <>
                 <Link to="/docs" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Yo'riqnoma</Link>
-                <Link to="/business-model" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Biznes model</Link>
                 <button 
                   onClick={handleLogout}
                   className="font-black text-sm uppercase opacity-50 hover:opacity-100 transition-opacity"
@@ -136,7 +133,6 @@ const AppContent: React.FC<{
           <Route path="/" element={currentUser ? <Home prefs={prefs} /> : <Navigate to="/login" replace />} />
           <Route path="/login" element={!currentUser ? <Login onLoginSuccess={setCurrentUser} /> : <Navigate to="/" replace />} />
           <Route path="/docs" element={currentUser ? <Documentation prefs={prefs} /> : <Navigate to="/login" replace />} />
-          <Route path="/business-model" element={currentUser ? <BusinessModel prefs={prefs} /> : <Navigate to="/login" replace />} />
           <Route path="/courses/:subjectId" element={currentUser ? <CourseView prefs={prefs} /> : <Navigate to="/login" replace />} />
           <Route path="/lesson/:lessonId" element={currentUser ? <LessonView prefs={prefs} /> : <Navigate to="/login" replace />} />
         </Routes>
