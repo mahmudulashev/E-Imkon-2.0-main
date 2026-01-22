@@ -47,13 +47,34 @@ const AITutor: React.FC = () => {
     if (outCtxRef.current.state === 'suspended') await outCtxRef.current.resume();
   };
 
+  const normalizeIntent = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/sahifasi|sahifa|och|oching|o'ching|kir|kirish|ga|ni/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const setLastCourse = (courseId: string) => {
+    try {
+      localStorage.setItem('lastCourseId', courseId);
+    } catch (e) {}
+  };
+
+  const getLastCourse = () => {
+    try {
+      return localStorage.getItem('lastCourseId');
+    } catch (e) {
+      return null;
+    }
+  };
+
   const handleToolCall = (fc: any, session: any) => {
     let result = "Bajarildi";
     const name = fc.name;
     const args = fc.args;
 
     if (name === 'navigate') {
-      const page = args.page.toLowerCase();
+      const page = normalizeIntent(args.page || '');
       const paths: any = { 
         'home': '/', 'bosh sahifa': '/', 'asosiy': '/',
         'math': '/courses/math-101', 'matematika': '/courses/math-101', 'matemika': '/courses/math-101', 'hisob-kitob': '/courses/math-101',
@@ -65,11 +86,14 @@ const AITutor: React.FC = () => {
       const targetPath = paths[page];
       if (targetPath) {
         navigate(targetPath);
+        if (targetPath.includes('/courses/')) setLastCourse(targetPath.split('/').pop() || '');
         result = `Hozir ${page} sahifasiga o'tamiz.`;
       } else {
         const fallbackKey = Object.keys(paths).find(k => page.includes(k) || k.includes(page));
         if (fallbackKey) {
-          navigate(paths[fallbackKey]);
+          const resolvedPath = paths[fallbackKey];
+          navigate(resolvedPath);
+          if (resolvedPath.includes('/courses/')) setLastCourse(resolvedPath.split('/').pop() || '');
           result = `${fallbackKey} sahifasi ochildi.`;
         } else {
           result = `Xato: "${page}" nomli sahifa topilmadi.`;
@@ -85,7 +109,9 @@ const AITutor: React.FC = () => {
         'frontend': ['fe-l1'],
         'dasturlash': ['fe-l1']
       };
-      const courseKey = args.course.toLowerCase();
+      const courseArg = args.course ? normalizeIntent(args.course) : '';
+      const lastCourse = getLastCourse();
+      const courseKey = courseArg || lastCourse || '';
       const idx = parseInt(args.index) - 1;
       
       const lessons = lessonMaps[courseKey];
@@ -93,7 +119,7 @@ const AITutor: React.FC = () => {
         navigate(`/lesson/${lessons[idx]}`);
         result = `${args.course} kursidan ${args.index}-dars ochildi.`;
       } else {
-        result = `Kechirasiz, ${args.course} kursida ${args.index}-darsni topa olmadim.`;
+        result = `Kechirasiz, ${args.course || 'tanlangan'} kursida ${args.index}-darsni topa olmadim.`;
       }
     } else if (name === 'scroll') {
       window.scrollBy({ top: args.direction === 'up' ? -500 : 500, behavior: 'smooth' });
@@ -198,12 +224,13 @@ const AITutor: React.FC = () => {
           - "Matemika sahifasiga o't" desa -> navigate(page: "matemika")
           - "Ingliz tilini och" -> navigate(page: "ingliz tili")
           - "Frontendni och" yoki "Dasturlash" -> navigate(page: "frontend")
+          - "1-darsni boshla" -> open_lesson(index: 1)
           - "Matematika sahifasida 1-darsga o't" -> open_lesson(course: "matematika", index: 1)
           - "Darsni o'qib ber" desa -> lesson_audio(action: "play")
           
           Foydalanuvchi bilan xushmuomala bo'ling.`,
           tools: [{ functionDeclarations: [
-            { name: 'open_lesson', parameters: { type: Type.OBJECT, properties: { course: { type: Type.STRING }, index: { type: Type.NUMBER } }, required: ['course', 'index'] } },
+            { name: 'open_lesson', parameters: { type: Type.OBJECT, properties: { course: { type: Type.STRING }, index: { type: Type.NUMBER } }, required: ['index'] } },
             { name: 'navigate', parameters: { type: Type.OBJECT, properties: { page: { type: Type.STRING } }, required: ['page'] } },
             { name: 'scroll', parameters: { type: Type.OBJECT, properties: { direction: { type: Type.STRING } }, required: ['direction'] } },
             { name: 'lesson_audio', parameters: { type: Type.OBJECT, properties: { action: { type: Type.STRING } }, required: ['action'] } }

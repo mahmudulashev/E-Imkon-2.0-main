@@ -20,6 +20,17 @@ import type {
   UserProfile,
   UserProgress,
 } from './types';
+import { MOCK_COURSES, MOCK_LESSONS } from './mockData';
+
+const mapMockLesson = (lesson: any): Lesson => ({
+  id: lesson.id,
+  courseId: lesson.course_id,
+  title: lesson.title,
+  content: lesson.content,
+  duration: lesson.duration,
+  level: lesson.level,
+  order_index: lesson.order_index,
+});
 
 const courseFromDoc = (snapshot: DocumentSnapshot<DocumentData>): Course => ({
   id: snapshot.id,
@@ -56,24 +67,33 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 
 export const getCourses = async (): Promise<Course[]> => {
   const snap = await getDocs(collection(db, 'courses'));
-  return snap.docs.map(courseFromDoc);
+  const courses = snap.docs.map(courseFromDoc);
+  return courses.length ? courses : MOCK_COURSES;
 };
 
 export const getCourseById = async (courseId: string): Promise<Course | null> => {
   const snap = await getDoc(doc(db, 'courses', courseId));
-  return snap.exists() ? courseFromDoc(snap) : null;
+  if (snap.exists()) return courseFromDoc(snap);
+  return MOCK_COURSES.find((course) => course.id === courseId) ?? null;
 };
 
 export const getLessonsByCourseId = async (courseId: string): Promise<Lesson[]> => {
   const lessonsQuery = query(collection(db, 'lessons'), where('courseId', '==', courseId));
   const snap = await getDocs(lessonsQuery);
-  const lessons = snap.docs.map(lessonFromDoc);
+  let lessons = snap.docs.map(lessonFromDoc);
+  if (!lessons.length && MOCK_LESSONS[courseId]) {
+    lessons = MOCK_LESSONS[courseId].map(mapMockLesson);
+  }
   return lessons.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 };
 
 export const getLessonById = async (lessonId: string): Promise<Lesson | null> => {
   const snap = await getDoc(doc(db, 'lessons', lessonId));
-  return snap.exists() ? lessonFromDoc(snap) : null;
+  if (snap.exists()) return lessonFromDoc(snap);
+  const mockLesson = Object.values(MOCK_LESSONS)
+    .flat()
+    .find((lesson) => lesson.id === lessonId);
+  return mockLesson ? mapMockLesson(mockLesson) : null;
 };
 
 export const enrollInCourse = async (uid: string, courseId: string): Promise<void> => {
