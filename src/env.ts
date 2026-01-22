@@ -1,9 +1,7 @@
 type EnvSource = 'meta' | 'process';
 
 const readMetaEnv = (key: string): string => {
-  // @ts-expect-error - import.meta.env is provided by Vite at build time.
   if (typeof import.meta !== 'undefined' && import.meta.env) {
-    // @ts-expect-error - import.meta.env is provided by Vite at build time.
     const value = import.meta.env[key];
     return typeof value === 'string' ? value : '';
   }
@@ -35,9 +33,7 @@ export const listEnvKeys = (source: EnvSource, match: (key: string) => boolean):
     return [];
   }
 
-  // @ts-expect-error - import.meta.env is provided by Vite at build time.
   if (typeof import.meta !== 'undefined' && import.meta.env) {
-    // @ts-expect-error - import.meta.env is provided by Vite at build time.
     return Object.keys(import.meta.env).filter(match);
   }
   return [];
