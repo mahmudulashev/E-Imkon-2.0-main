@@ -45,7 +45,29 @@ const CourseView: React.FC<Props> = ({ prefs, currentUser, profile, setProfile }
     fetchData();
   }, [subjectId, currentUser]);
 
-  if (loading) return <div role="alert" className="p-20 text-center font-black text-3xl">Yuklanmoqda...</div>;
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto py-10 space-y-12 animate-pulse">
+        <div className="h-12 w-40 bg-slate-200 border-4 border-slate-900"></div>
+        <div className="space-y-4">
+          <div className="h-16 w-3/4 bg-slate-200 border-4 border-slate-900"></div>
+          <div className="h-8 w-2/3 bg-slate-100 border-4 border-slate-900"></div>
+        </div>
+        <div className="brutal-card bg-slate-100 p-6">
+          <div className="h-8 w-32 bg-slate-200 border-4 border-slate-900"></div>
+        </div>
+        <div className="grid gap-8">
+          {Array.from({ length: 3 }).map((_, idx) => (
+            <div key={`skeleton-${idx}`} className="brutal-card p-8 bg-white">
+              <div className="h-10 w-24 bg-slate-200 border-4 border-slate-900 mb-6"></div>
+              <div className="h-8 w-1/2 bg-slate-200 border-4 border-slate-900 mb-3"></div>
+              <div className="h-6 w-1/3 bg-slate-100 border-4 border-slate-900"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (error || !course) {
     return (
       <div role="alert" className="p-20 text-center font-black text-3xl">
