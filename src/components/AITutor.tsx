@@ -32,7 +32,17 @@ const AITutor: React.FC = () => {
   const initAudio = async () => {
     if (!audioContextRef.current) audioContextRef.current = new AudioContext({ sampleRate: 16000 });
     if (!outCtxRef.current) outCtxRef.current = new AudioContext({ sampleRate: 24000 });
-    if (!streamRef.current) streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if (!streamRef.current) {
+      streamRef.current = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 16000,
+        },
+      });
+    }
     if (audioContextRef.current.state === 'suspended') await audioContextRef.current.resume();
     if (outCtxRef.current.state === 'suspended') await outCtxRef.current.resume();
   };
@@ -44,7 +54,6 @@ const AITutor: React.FC = () => {
 
     if (name === 'navigate') {
       const page = args.page.toLowerCase();
-      // Expanded mapping for Uzbek and English terms
       const paths: any = { 
         'home': '/', 'bosh sahifa': '/', 'asosiy': '/',
         'math': '/courses/math-101', 'matematika': '/courses/math-101', 'matemika': '/courses/math-101', 'hisob-kitob': '/courses/math-101',
@@ -58,7 +67,6 @@ const AITutor: React.FC = () => {
         navigate(targetPath);
         result = `Hozir ${page} sahifasiga o'tamiz.`;
       } else {
-        // Fallback search in keys
         const fallbackKey = Object.keys(paths).find(k => page.includes(k) || k.includes(page));
         if (fallbackKey) {
           navigate(paths[fallbackKey]);
@@ -120,9 +128,13 @@ const AITutor: React.FC = () => {
             const processor = audioContextRef.current!.createScriptProcessor(4096, 1, 1);
             processorRef.current = processor;
             processor.onaudioprocess = (e) => {
+              if (!isActiveRef.current) return;
               const input = e.inputBuffer.getChannelData(0);
               const int16 = new Int16Array(input.length);
-              for (let i = 0; i < input.length; i++) int16[i] = input[i] * 32768;
+              for (let i = 0; i < input.length; i++) {
+                const sample = Math.max(-1, Math.min(1, input[i]));
+                int16[i] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+              }
               // Guideline: Use promise to prevent race conditions during streaming
               sessionPromise.then(s => s.sendRealtimeInput({ 
                 media: { data: encode(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' } 

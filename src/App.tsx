@@ -152,9 +152,7 @@ const AppContent: React.FC<{
                   ☰
                 </button>
               </>
-            ) : (
-              <Link to="/login" className="brutal-btn bg-yellow-400 px-8 py-3 font-black uppercase text-black">Kirish</Link>
-            )}
+            ) : null}
           </div>
         </div>
         {currentUser && (
