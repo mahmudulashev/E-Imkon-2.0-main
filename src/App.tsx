@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import Documentation from './pages/Documentation';
 import Profile from './pages/Profile';
 import AdminPanel from './pages/AdminPanel';
+import BusinessModel from './pages/BusinessModel';
 import AccessibilityPanel from './components/AccessibilityPanel';
 import AITutor from './components/AITutor';
 import { generateSpeech, decode, decodeAudioData, playSoundCue } from './geminiService';
@@ -131,6 +132,7 @@ const AppContent: React.FC<{
                 <div className="hidden md:flex items-center space-x-8">
                   <Link to="/" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Bosh sahifa</Link>
                   <Link to="/docs" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Yo'riqnoma</Link>
+                  <Link to="/business" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Biznes model</Link>
                   <Link to="/profile" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Profil</Link>
                   {profile?.role === 'admin' && (
                     <Link to="/admin" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Admin</Link>
@@ -164,6 +166,9 @@ const AppContent: React.FC<{
               <Link to="/docs" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
                 Yo'riqnoma
               </Link>
+              <Link to="/business" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
+                Biznes model
+              </Link>
               <Link to="/profile" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
                 Profil
               </Link>
@@ -190,6 +195,7 @@ const AppContent: React.FC<{
           <Route path="/" element={currentUser ? <Home prefs={prefs} /> : <Navigate to="/login" replace />} />
           <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" replace />} />
           <Route path="/docs" element={currentUser ? <Documentation prefs={prefs} /> : <Navigate to="/login" replace />} />
+          <Route path="/business" element={<BusinessModel prefs={prefs} />} />
           <Route path="/profile" element={currentUser ? <Profile prefs={prefs} currentUser={currentUser} profile={profile} /> : <Navigate to="/login" replace />} />
           <Route path="/admin" element={currentUser && profile?.role === 'admin' ? <AdminPanel prefs={prefs} /> : <Navigate to="/" replace />} />
           <Route path="/courses/:subjectId" element={currentUser ? <CourseView prefs={prefs} currentUser={currentUser} profile={profile} setProfile={setProfile} /> : <Navigate to="/login" replace />} />
