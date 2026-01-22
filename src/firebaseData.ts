@@ -22,6 +22,8 @@ import type {
 } from './types';
 import { MOCK_COURSES, MOCK_LESSONS } from './mockData';
 
+const mockLessonsByCourse = MOCK_LESSONS as Record<string, any[]>;
+
 const mapMockLesson = (lesson: any): Lesson => ({
   id: lesson.id,
   courseId: lesson.course_id,
@@ -81,8 +83,8 @@ export const getLessonsByCourseId = async (courseId: string): Promise<Lesson[]> 
   const lessonsQuery = query(collection(db, 'lessons'), where('courseId', '==', courseId));
   const snap = await getDocs(lessonsQuery);
   let lessons = snap.docs.map(lessonFromDoc);
-  if (!lessons.length && MOCK_LESSONS[courseId]) {
-    lessons = MOCK_LESSONS[courseId].map(mapMockLesson);
+  if (!lessons.length && mockLessonsByCourse[courseId]) {
+    lessons = mockLessonsByCourse[courseId].map(mapMockLesson);
   }
   return lessons.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 };
@@ -90,7 +92,7 @@ export const getLessonsByCourseId = async (courseId: string): Promise<Lesson[]> 
 export const getLessonById = async (lessonId: string): Promise<Lesson | null> => {
   const snap = await getDoc(doc(db, 'lessons', lessonId));
   if (snap.exists()) return lessonFromDoc(snap);
-  const mockLesson = Object.values(MOCK_LESSONS)
+  const mockLesson = Object.values(mockLessonsByCourse)
     .flat()
     .find((lesson) => lesson.id === lessonId);
   return mockLesson ? mapMockLesson(mockLesson) : null;
