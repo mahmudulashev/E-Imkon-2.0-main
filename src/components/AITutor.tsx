@@ -190,7 +190,7 @@ const AITutor: React.FC = () => {
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-          systemInstruction: `Siz E‑Imkon yordamchisiz. Oddiy, tushunarli va do'stona qilib gapiring. 
+          systemInstruction: `Siz E-Imkon yordamchisiz. Oddiy, tushunarli va do'stona qilib gapiring. 
           Faqat o'zbek tilida javob bering.
           
           Navigatsiya bo'yicha yordam:

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import type { UserPreferences, Course, Lesson, UserProfile } from '../types';
 import type { User } from 'firebase/auth';
