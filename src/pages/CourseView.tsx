@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import type { UserPreferences, Course, Lesson, UserProfile } from '../types';
 import type { User } from 'firebase/auth';
@@ -19,10 +19,13 @@ const CourseView: React.FC<Props> = ({ prefs, currentUser, profile, setProfile }
   const [error, setError] = useState<string | null>(null);
   const [enrolling, setEnrolling] = useState(false);
   const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
+  const [activeLessonIndex, setActiveLessonIndex] = useState(0);
+  const lessonRefs = useRef<Array<HTMLAnchorElement | null>>([]);
 
   useEffect(() => {
     async function fetchData() {
       if (!subjectId) return;
+      setCompletedLessonIds(new Set());
       try {
         const [courseData, lessonData] = await Promise.all([
           getCourseById(subjectId),
@@ -44,6 +47,37 @@ const CourseView: React.FC<Props> = ({ prefs, currentUser, profile, setProfile }
     }
     fetchData();
   }, [subjectId, currentUser]);
+
+  useEffect(() => {
+    setActiveLessonIndex(0);
+  }, [subjectId, lessons.length]);
+
+  useEffect(() => {
+    const handleKeyNav = (event: KeyboardEvent) => {
+      if (!event.altKey) return;
+      if (!lessons.length) return;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((event.target as HTMLElement)?.tagName || '')) return;
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const next = Math.min(activeLessonIndex + 1, lessons.length - 1);
+        setActiveLessonIndex(next);
+        lessonRefs.current[next]?.focus();
+        lessonRefs.current[next]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const prev = Math.max(activeLessonIndex - 1, 0);
+        setActiveLessonIndex(prev);
+        lessonRefs.current[prev]?.focus();
+        lessonRefs.current[prev]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyNav);
+    return () => window.removeEventListener('keydown', handleKeyNav);
+  }, [lessons, activeLessonIndex]);
 
   if (loading) {
     return (
@@ -77,6 +111,10 @@ const CourseView: React.FC<Props> = ({ prefs, currentUser, profile, setProfile }
   }
 
   const isEnrolled = !!profile?.enrolledCourseIds?.includes(course.id);
+  const totalLessons = lessons.length;
+  const completedCount = completedLessonIds.size;
+  const progressPercent = totalLessons ? Math.round((completedCount / totalLessons) * 100) : 0;
+  const progressLabel = `${completedCount}/${totalLessons}`;
 
   const handleEnroll = async () => {
     if (!currentUser || !course) return;
@@ -104,6 +142,17 @@ const CourseView: React.FC<Props> = ({ prefs, currentUser, profile, setProfile }
         <div>
           <h1 className="text-7xl font-black mb-4 tracking-tighter uppercase leading-none">{course?.name}</h1>
           <p className="text-2xl text-slate-600 font-bold handwritten italic">{course?.description}</p>
+          <div className="mt-6 flex flex-wrap gap-4 items-center text-xs font-black uppercase tracking-widest">
+            <span className="bg-slate-900 text-white px-3 py-1">Progress: {progressLabel}</span>
+            <span className="bg-slate-100 text-slate-700 px-3 py-1">Alt + ↑/↓ bilan darslar orasida</span>
+          </div>
+          <div className="mt-4 h-3 w-full max-w-md bg-slate-200 border-2 border-slate-900">
+            <div
+              className="h-full bg-green-500"
+              style={{ width: `${progressPercent}%` }}
+              aria-label={`Progress ${progressPercent}%`}
+            />
+          </div>
         </div>
         <div className="flex flex-col items-start gap-4">
           <div className="brutal-card bg-yellow-300 p-6 -rotate-2" aria-label={`${lessons.length} ta dars mavjud`}>
@@ -134,6 +183,9 @@ const CourseView: React.FC<Props> = ({ prefs, currentUser, profile, setProfile }
             to={`/lesson/${lesson.id}`} 
             className="group"
             aria-label={`${idx + 1}-dars: ${lesson.title}. Davomiyligi ${lesson.duration}`}
+            ref={(el) => {
+              lessonRefs.current[idx] = el;
+            }}
           >
             <div className={`brutal-card p-8 flex items-center gap-8 ${isCompleted ? completedClass : baseCardClass}`}>
               <div className="w-16 h-16 brutal-card bg-slate-900 text-black flex items-center justify-center text-3xl font-black group-hover:bg-indigo-600 transition-colors" aria-hidden="true">

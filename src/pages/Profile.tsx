@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Course, UserPreferences, UserProfile, UserProgress } from '../types';
 import type { User } from 'firebase/auth';
-import { getCourses, getUserProgress } from '../firebaseData';
+import { getCourses, getLessonsByCourseId, getUserProgress } from '../firebaseData';
 
 interface Props {
   prefs: UserPreferences;
@@ -13,6 +13,7 @@ interface Props {
 const Profile: React.FC<Props> = ({ prefs, currentUser, profile }) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [progress, setProgress] = useState<UserProgress[]>([]);
+  const [lessonCounts, setLessonCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const baseStyle = { fontSize: `${prefs.fontSize}px` };
@@ -27,6 +28,19 @@ const Profile: React.FC<Props> = ({ prefs, currentUser, profile }) => {
         ]);
         setCourses(courseData);
         setProgress(progressData);
+        const enrolledIds = new Set(profile?.enrolledCourseIds || []);
+        const enrolledCourses = courseData.filter((course) => enrolledIds.has(course.id));
+        const lessonTotals = await Promise.all(
+          enrolledCourses.map(async (course) => {
+            const lessons = await getLessonsByCourseId(course.id);
+            return { courseId: course.id, total: lessons.length };
+          }),
+        );
+        const countsMap: Record<string, number> = {};
+        lessonTotals.forEach((item) => {
+          countsMap[item.courseId] = item.total;
+        });
+        setLessonCounts(countsMap);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Profil maʼlumotlarini yuklashda xatolik.');
       } finally {
@@ -34,7 +48,7 @@ const Profile: React.FC<Props> = ({ prefs, currentUser, profile }) => {
       }
     }
     loadProfileData();
-  }, [currentUser]);
+  }, [currentUser, profile]);
 
   const progressMap = useMemo(() => {
     return new Map(progress.map((p) => [p.courseId, p]));
@@ -44,6 +58,8 @@ const Profile: React.FC<Props> = ({ prefs, currentUser, profile }) => {
     if (!profile?.enrolledCourseIds?.length) return [];
     return courses.filter((course) => profile.enrolledCourseIds.includes(course.id));
   }, [courses, profile]);
+
+  const totalCompleted = progress.reduce((sum, item) => sum + (item.completedLessonIds?.length || 0), 0);
 
   if (loading) return <div className="p-20 text-center font-black text-3xl uppercase">Yuklanmoqda...</div>;
   if (error) return <div className="p-20 text-center font-black text-3xl uppercase">{error}</div>;
@@ -64,6 +80,10 @@ const Profile: React.FC<Props> = ({ prefs, currentUser, profile }) => {
           <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Kurslar soni</div>
           <div className="text-4xl font-black mt-2">{enrolledCourses.length}</div>
         </div>
+        <div className="brutal-card bg-green-100 p-6">
+          <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Tugatilgan darslar</div>
+          <div className="text-4xl font-black mt-2">{totalCompleted}</div>
+        </div>
       </header>
 
       <section className="space-y-6">
@@ -76,6 +96,9 @@ const Profile: React.FC<Props> = ({ prefs, currentUser, profile }) => {
           <div className="grid md:grid-cols-2 gap-8">
             {enrolledCourses.map((course) => {
               const courseProgress = progressMap.get(course.id);
+              const totalLessons = lessonCounts[course.id] ?? 0;
+              const completedCount = courseProgress?.completedLessonIds?.length || 0;
+              const progressPercent = totalLessons ? Math.round((completedCount / totalLessons) * 100) : 0;
               return (
                 <div key={course.id} className="brutal-card p-8 bg-white">
                   <div className="flex items-center gap-4 mb-4">
@@ -88,6 +111,15 @@ const Profile: React.FC<Props> = ({ prefs, currentUser, profile }) => {
                     </div>
                   </div>
                   <p className="font-bold text-slate-600 mb-6">{course.description}</p>
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between text-xs font-black uppercase text-slate-500 mb-2">
+                      <span>Progress</span>
+                      <span>{completedCount}/{totalLessons}</span>
+                    </div>
+                    <div className="h-3 w-full bg-slate-100 border-2 border-slate-900">
+                      <div className="h-full bg-green-500" style={{ width: `${progressPercent}%` }} />
+                    </div>
+                  </div>
                   <div className="flex items-center justify-between">
                     <div className="text-sm font-black uppercase text-slate-400">
                       {courseProgress?.lastLessonId ? `Qayergacha: ${courseProgress.lastLessonId}` : 'Hali boshlanmagan'}

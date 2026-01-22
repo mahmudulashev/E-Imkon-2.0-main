@@ -51,10 +51,12 @@ const Documentation: React.FC<Props> = ({ prefs }) => {
         Ctrl yoki Cmd + Shift + D - yo'riqnoma. 
         Ctrl yoki Cmd + Shift + C - kontrast rejim. 
         Ctrl yoki Cmd + Shift + P - dars audio yoki qo'llanma audio. 
+        Ctrl yoki Cmd + Shift + R - ekran o'qish rejimi (avtomatik o'qish). 
         Ctrl yoki Cmd + Shift + T - testni boshlash. 
         Ctrl yoki Cmd + Shift + K - qulaylik panelini ochish yoki yopish. 
         M - AI tutor, ESC - yopish. 
         Darsda Ctrl yoki Cmd + Shift + chap yoki o'ng strelka bilan oldingi yoki keyingi darsga o'tish mumkin. 
+        Kurs sahifasida Alt + yuqoriga yoki pastga bilan darslarni tez tanlash mumkin. 
         Testda A, B, C variant tanlash, Enter tasdiqlash.`;
         
         const base64 = await generateSpeech(text);
@@ -155,8 +157,16 @@ const Documentation: React.FC<Props> = ({ prefs }) => {
               <kbd className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm">Ctrl/Cmd + Shift + T</kbd>
             </div>
             <div className="flex justify-between items-center border-b-4 border-slate-100 pb-3">
+              <span>Kursdagi darslar</span>
+              <kbd className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm">Alt + ↑ / ↓</kbd>
+            </div>
+            <div className="flex justify-between items-center border-b-4 border-slate-100 pb-3">
               <span>Qulaylik paneli</span>
               <kbd className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm">Ctrl/Cmd + Shift + K</kbd>
+            </div>
+            <div className="flex justify-between items-center border-b-4 border-slate-100 pb-3">
+              <span>Ekran o'qish rejimi</span>
+              <kbd className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm">Ctrl/Cmd + Shift + R</kbd>
             </div>
           </div>
         </section>
@@ -191,7 +201,7 @@ const Documentation: React.FC<Props> = ({ prefs }) => {
           </li>
           <li className="bg-white/10 p-6 border-2 border-white/20">
             <span className="text-yellow-400 block mb-2">Darslar orasida yurish</span>
-            Alt/Option/Cmd + ← / → tugmalari.
+            Dars sahifasida Ctrl/Cmd + Shift + ← / →. Kurs sahifasida Alt + ↑ / ↓.
           </li>
           <li className="bg-white/10 p-6 border-2 border-white/20">
             <span className="text-yellow-400 block mb-2">Testni tez boshlash</span>

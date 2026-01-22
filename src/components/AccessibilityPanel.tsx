@@ -53,7 +53,7 @@ const AccessibilityPanel: React.FC<Props> = ({ prefs, setPrefs }) => {
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm font-black text-slate-700 uppercase">Yuqori Kontrast (ALT+4)</span>
+          <span className="text-sm font-black text-slate-700 uppercase">Yuqori Kontrast (Ctrl/Cmd+Shift+C)</span>
           <button 
             role="switch"
             aria-checked={prefs.contrast === 'high'}
@@ -61,6 +61,30 @@ const AccessibilityPanel: React.FC<Props> = ({ prefs, setPrefs }) => {
             className={`w-12 h-6 rounded-full transition-colors border-2 border-slate-900 ${prefs.contrast === 'high' ? 'bg-indigo-600' : 'bg-gray-200'}`}
           >
             <div className={`w-4 h-4 bg-white rounded-full transition-transform border border-slate-900 ${prefs.contrast === 'high' ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-black text-slate-700 uppercase">Ovozli o'qish</span>
+          <button
+            role="switch"
+            aria-checked={prefs.voiceSupport}
+            onClick={() => setPrefs(prev => ({ ...prev, voiceSupport: !prev.voiceSupport }))}
+            className={`w-12 h-6 rounded-full transition-colors border-2 border-slate-900 ${prefs.voiceSupport ? 'bg-indigo-600' : 'bg-gray-200'}`}
+          >
+            <div className={`w-4 h-4 bg-white rounded-full transition-transform border border-slate-900 ${prefs.voiceSupport ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-black text-slate-700 uppercase">Ekran o'qish rejimi (Ctrl/Cmd+Shift+R)</span>
+          <button
+            role="switch"
+            aria-checked={prefs.readerMode}
+            onClick={() => setPrefs(prev => ({ ...prev, readerMode: !prev.readerMode }))}
+            className={`w-12 h-6 rounded-full transition-colors border-2 border-slate-900 ${prefs.readerMode ? 'bg-indigo-600' : 'bg-gray-200'}`}
+          >
+            <div className={`w-4 h-4 bg-white rounded-full transition-transform border border-slate-900 ${prefs.readerMode ? 'translate-x-6' : 'translate-x-1'}`} />
           </button>
         </div>
       </div>

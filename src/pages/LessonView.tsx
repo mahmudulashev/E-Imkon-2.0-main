@@ -60,9 +60,6 @@ const LessonView: React.FC<Props> = ({ prefs, currentUser }) => {
         const courseLessons = await getLessonsByCourseId(currentLesson.courseId);
         setLesson(currentLesson);
         setAllLessonsInCourse(courseLessons);
-        if (currentUser) {
-          await updateUserProgress(currentUser.uid, currentLesson.courseId, currentLesson.id);
-        }
       } catch (err: unknown) {
         setDataError(err instanceof Error ? err.message : 'Darsni yuklashda xatolik.');
       } finally {
@@ -192,6 +189,15 @@ const LessonView: React.FC<Props> = ({ prefs, currentUser }) => {
   };
 
   useEffect(() => {
+    if (!lesson || !prefs.readerMode || !prefs.voiceSupport) return;
+    if (isPlaying || loadingAudio) return;
+    const timer = window.setTimeout(() => {
+      if (!isPlayingRef.current) toggleAudio();
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [lesson, prefs.readerMode, prefs.voiceSupport, isPlaying, loadingAudio]);
+
+  useEffect(() => {
     if (!lesson) return;
     prefetchSection(0);
     prefetchSection(1);
@@ -211,6 +217,15 @@ const LessonView: React.FC<Props> = ({ prefs, currentUser }) => {
   const prevLesson = currentIndex > 0 ? allLessonsInCourse[currentIndex - 1] : null;
   const nextLesson = currentIndex !== -1 && currentIndex < allLessonsInCourse.length - 1 ? allLessonsInCourse[currentIndex + 1] : null;
 
+  const markCompleted = async () => {
+    if (!currentUser || !lesson) return;
+    try {
+      await updateUserProgress(currentUser.uid, lesson.courseId, lesson.id);
+    } catch (err) {
+      console.error('Progress update failed:', err);
+    }
+  };
+
   useEffect(() => {
     const handleShortcuts = (e: KeyboardEvent) => {
       const modifier = (e.ctrlKey && e.shiftKey) || (e.metaKey && e.shiftKey);
@@ -226,6 +241,7 @@ const LessonView: React.FC<Props> = ({ prefs, currentUser }) => {
       }
       if (e.key === 'ArrowRight' && nextLesson) {
         e.preventDefault();
+        markCompleted();
         navigate(`/lesson/${nextLesson.id}`);
       }
     };
@@ -290,8 +306,32 @@ const LessonView: React.FC<Props> = ({ prefs, currentUser }) => {
       {lesson.content.quiz && <Quiz questions={lesson.content.quiz} prefs={prefs} />}
 
       <div className="flex justify-between items-center py-10 border-t-4 border-slate-900">
-        {prevLesson && <button onClick={() => navigate(`/lesson/${prevLesson.id}`)} className="brutal-btn bg-white text-black">← OLDINGI DARS</button>}
-        {nextLesson ? <button onClick={() => navigate(`/lesson/${nextLesson.id}`)} className="brutal-btn bg-slate-900 text-black">KEYINGI DARS →</button> : <Link to="/" className="brutal-btn bg-green-500 text-white">TUGATISH 🎉</Link>}
+        {prevLesson && (
+          <button onClick={() => navigate(`/lesson/${prevLesson.id}`)} className="brutal-btn bg-white text-black">
+            ← OLDINGI DARS
+          </button>
+        )}
+        {nextLesson ? (
+          <button
+            onClick={() => {
+              markCompleted();
+              navigate(`/lesson/${nextLesson.id}`);
+            }}
+            className="brutal-btn bg-slate-900 text-black"
+          >
+            KEYINGI DARS →
+          </button>
+        ) : (
+          <Link
+            to="/"
+            onClick={() => {
+              markCompleted();
+            }}
+            className="brutal-btn bg-green-500 text-white"
+          >
+            TUGATISH 🎉
+          </Link>
+        )}
       </div>
     </div>
   );

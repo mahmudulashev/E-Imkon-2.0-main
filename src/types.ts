@@ -63,6 +63,7 @@ export interface UserPreferences {
   fontSize: number;
   contrast: 'normal' | 'high';
   voiceSupport: boolean;
+  readerMode: boolean;
 }
 
 export interface Message {

@@ -30,6 +30,7 @@ const AppContent: React.FC<{
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
   const lastSpokenText = useRef<string>("");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const getCtx = async () => {
     if (!audioContextRef.current) {
@@ -84,6 +85,10 @@ const AppContent: React.FC<{
         e.preventDefault(); 
         setPrefs(p => ({ ...p, contrast: p.contrast === 'high' ? 'normal' : 'high' })); 
       }
+      if (modifier && e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        setPrefs(p => ({ ...p, readerMode: !p.readerMode }));
+      }
       if (modifier && e.key.toLowerCase() === 'p') {
         e.preventDefault();
         stopGlobalAudio();
@@ -123,16 +128,28 @@ const AppContent: React.FC<{
           <div className="flex items-center space-x-8">
             {currentUser ? (
               <>
-                <Link to="/docs" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Yo'riqnoma</Link>
-                <Link to="/profile" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Profil</Link>
-                {profile?.role === 'admin' && (
-                  <Link to="/admin" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Admin</Link>
-                )}
-                <button 
-                  onClick={handleLogout}
-                  className="font-black text-sm uppercase opacity-50 hover:opacity-100 transition-opacity"
+                <div className="hidden md:flex items-center space-x-8">
+                  <Link to="/" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Bosh sahifa</Link>
+                  <Link to="/docs" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Yo'riqnoma</Link>
+                  <Link to="/profile" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Profil</Link>
+                  {profile?.role === 'admin' && (
+                    <Link to="/admin" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Admin</Link>
+                  )}
+                  <button 
+                    onClick={handleLogout}
+                    className="font-black text-sm uppercase opacity-50 hover:opacity-100 transition-opacity"
+                  >
+                    Chiqish
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Menyu"
+                  aria-expanded={isMenuOpen}
+                  onClick={() => setIsMenuOpen((prev) => !prev)}
+                  className="md:hidden brutal-btn bg-yellow-400 px-4 py-2 font-black uppercase text-black"
                 >
-                  Chiqish
+                  ☰
                 </button>
               </>
             ) : (
@@ -140,6 +157,35 @@ const AppContent: React.FC<{
             )}
           </div>
         </div>
+        {currentUser && (
+          <div className={`md:hidden px-6 pb-6 ${isMenuOpen ? 'block' : 'hidden'}`}>
+            <div className="brutal-card bg-white border-4 border-slate-900 p-4 space-y-4">
+              <Link to="/" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
+                Bosh sahifa
+              </Link>
+              <Link to="/docs" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
+                Yo'riqnoma
+              </Link>
+              <Link to="/profile" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
+                Profil
+              </Link>
+              {profile?.role === 'admin' && (
+                <Link to="/admin" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
+                  Admin
+                </Link>
+              )}
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  handleLogout();
+                }}
+                className="w-full brutal-btn bg-slate-900 text-black font-black uppercase"
+              >
+                Chiqish
+              </button>
+            </div>
+          </div>
+        )}
       </nav>
       <main id="main-content" className="flex-grow max-w-7xl mx-auto w-full p-6 outline-none" tabIndex={-1}>
         <Routes>
@@ -164,7 +210,16 @@ const App: React.FC = () => {
   const [authLoading, setAuthLoading] = useState(true);
   const [prefs, setPrefs] = useState<UserPreferences>(() => {
     const saved = localStorage.getItem('e_imkon_prefs');
-    return saved ? JSON.parse(saved) : { fontSize: 15, contrast: 'normal', voiceSupport: true };
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        fontSize: parsed.fontSize ?? 15,
+        contrast: parsed.contrast ?? 'normal',
+        voiceSupport: parsed.voiceSupport ?? true,
+        readerMode: parsed.readerMode ?? false,
+      };
+    }
+    return { fontSize: 15, contrast: 'normal', voiceSupport: true, readerMode: false };
   });
 
   useEffect(() => {
