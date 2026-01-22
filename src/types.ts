@@ -19,15 +19,44 @@ export interface QuizQuestion {
 
 export interface Lesson {
   id: string;
-  course_id: string;
+  courseId: string;
   title: string;
   content: {
-    sections: { title: string; content: string }[];
+    sections: { title: string; content: string; image?: string; imageAlt?: string; caption?: string }[];
     quiz?: QuizQuestion[];
   };
   duration: string;
   level: string;
   order_index: number;
+}
+
+export interface Course {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color_hex: string;
+  level_tag: string;
+  published?: boolean;
+}
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL: string;
+  role: 'student' | 'admin';
+  enrolledCourseIds: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface UserProgress {
+  id: string;
+  courseId: string;
+  lastLessonId: string;
+  completedLessonIds: string[];
+  updatedAt?: string;
 }
 
 export interface UserPreferences {

@@ -1,21 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { UserPreferences } from '../types';
-import { MOCK_COURSES } from '../mockData';
+import type { UserPreferences, Course } from '../types';
+import { getCourses } from '../firebaseData';
 
 interface Props {
   prefs: UserPreferences;
 }
 
 const Home: React.FC<Props> = ({ prefs }) => {
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const baseStyle = { fontSize: `${prefs.fontSize}px` };
 
   useEffect(() => {
     async function fetchCourses() {
-      setCourses(MOCK_COURSES);
-      setTimeout(() => setLoading(false), 800); // Silliq o'tish uchun biroz kechikish
+      try {
+        const data = await getCourses();
+        setCourses(data);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Kurslarni yuklashda xatolik.');
+      } finally {
+        setTimeout(() => setLoading(false), 400);
+      }
     }
     fetchCourses();
   }, []);
@@ -29,6 +36,8 @@ const Home: React.FC<Props> = ({ prefs }) => {
       </div>
     </div>
   );
+
+  const visibleCourses = courses.filter((course) => course.published !== false);
 
   return (
     <div className="space-y-24 py-10 animate-in fade-in duration-700" style={baseStyle}>
@@ -44,28 +53,34 @@ const Home: React.FC<Props> = ({ prefs }) => {
         </p>
       </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-        {courses.map((sub) => (
-          <Link key={sub.id} to={`/courses/${sub.id}`} className="group">
-            <div className="brutal-card h-full p-8 flex flex-col items-start relative overflow-hidden" style={{ backgroundColor: sub.color_hex || '#fff' }}>
-              <div className="w-20 h-20 bg-white border-4 border-slate-900 flex items-center justify-center text-5xl mb-8 -rotate-6 group-hover:rotate-0 transition-all duration-300 shadow-[4px_4px_0px_0px_#1a1a1a]">
-                {sub.icon}
+      {error ? (
+        <div className="brutal-card p-8 bg-red-50 border-red-400">
+          <p className="font-black text-red-700 uppercase">Xatolik: {error}</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          {visibleCourses.map((sub) => (
+            <Link key={sub.id} to={`/courses/${sub.id}`} className="group">
+              <div className="brutal-card h-full p-8 flex flex-col items-start relative overflow-hidden" style={{ backgroundColor: sub.color_hex || '#fff' }}>
+                <div className="w-20 h-20 bg-white border-4 border-slate-900 flex items-center justify-center text-5xl mb-8 -rotate-6 group-hover:rotate-0 transition-all duration-300 shadow-[4px_4px_0px_0px_#1a1a1a]">
+                  {sub.icon}
+                </div>
+                <span className="bg-slate-900 text-white px-3 py-0.5 text-[10px] font-black uppercase mb-4 shadow-[3px_3px_0px_0px_#fbbf24]">
+                  {sub.level_tag}
+                </span>
+                <h3 className="text-4xl font-black mb-4 leading-none tracking-tighter text-slate-900">{sub.name}</h3>
+                <p className="text-slate-900/70 font-bold mb-10 text-lg leading-snug font-main">
+                  {sub.description}
+                </p>
+                <div className="mt-auto w-full flex justify-between items-center pt-6 border-t-4 border-slate-900">
+                  <span className="font-black text-sm uppercase tracking-widest">Darsga kirish</span>
+                  <span className="text-3xl group-hover:translate-x-3 transition-transform duration-300">→</span>
+                </div>
               </div>
-              <span className="bg-slate-900 text-white px-3 py-0.5 text-[10px] font-black uppercase mb-4 shadow-[3px_3px_0px_0px_#fbbf24]">
-                {sub.level_tag}
-              </span>
-              <h3 className="text-4xl font-black mb-4 leading-none tracking-tighter text-slate-900">{sub.name}</h3>
-              <p className="text-slate-900/70 font-bold mb-10 text-lg leading-snug font-main">
-                {sub.description}
-              </p>
-              <div className="mt-auto w-full flex justify-between items-center pt-6 border-t-4 border-slate-900">
-                <span className="font-black text-sm uppercase tracking-widest">Darsga kirish</span>
-                <span className="text-3xl group-hover:translate-x-3 transition-transform duration-300">→</span>
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
+            </Link>
+          ))}
+        </div>
+      )}
 
       <section className="relative overflow-hidden border-4 border-slate-900 bg-gradient-to-br from-[#fff1cc] via-white to-[#d9f1ff] p-12 md:p-20">
         <div className="absolute inset-0 pointer-events-none">

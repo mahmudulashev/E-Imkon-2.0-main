@@ -1,25 +1,29 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import type { UserPreferences } from '../types';
+import type { UserPreferences, Lesson } from '../types';
+import type { User } from 'firebase/auth';
 import { generateSpeech, decode, decodeAudioData, createSpeechUtterance, isTtsBlocked } from '../geminiService';
 import { getGeminiApiKey } from '../env';
-import { MOCK_LESSONS } from '../mockData';
+import { getLessonById, getLessonsByCourseId, updateUserProgress } from '../firebaseData';
 import Quiz from '../components/Quiz';
 
 interface Props {
   prefs: UserPreferences;
+  currentUser: User | null;
 }
 
-const LessonView: React.FC<Props> = ({ prefs }) => {
+const LessonView: React.FC<Props> = ({ prefs, currentUser }) => {
   const { lessonId } = useParams<{ lessonId: string }>();
   const navigate = useNavigate();
-  const [lesson, setLesson] = useState<any>(null);
-  const [allLessonsInCourse, setAllLessonsInCourse] = useState<any[]>([]);
+  const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [allLessonsInCourse, setAllLessonsInCourse] = useState<Lesson[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [loadingAudio, setLoadingAudio] = useState(false);
   const [currentActiveChunk, setCurrentActiveChunk] = useState(0);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [loadingLesson, setLoadingLesson] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
@@ -27,10 +31,13 @@ const LessonView: React.FC<Props> = ({ prefs }) => {
   const isPlayingRef = useRef(false);
   const audioCache = useRef<{ [key: number]: AudioBuffer }>({});
   const inFlightPrefetch = useRef<Set<number>>(new Set());
+  type LessonSection = Lesson['content']['sections'][number];
 
   const getAudioContext = async () => {
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      const AudioCtx = window.AudioContext || (window as Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) throw new Error('AudioContext not supported');
+      audioContextRef.current = new AudioCtx({ sampleRate: 24000 });
     }
     if (audioContextRef.current.state === 'suspended') {
       await audioContextRef.current.resume();
@@ -40,19 +47,32 @@ const LessonView: React.FC<Props> = ({ prefs }) => {
 
   useEffect(() => {
     async function fetchLessonData() {
-      const flatMock = Object.values(MOCK_LESSONS).flat();
-      const currentLesson = flatMock.find(l => l.id === lessonId);
-      const courseLessons = currentLesson
-        ? MOCK_LESSONS[currentLesson.course_id as keyof typeof MOCK_LESSONS] || []
-        : [];
-
-      setLesson(currentLesson);
-      setAllLessonsInCourse(courseLessons);
+      if (!lessonId) return;
+      setLoadingLesson(true);
+      try {
+        const currentLesson = await getLessonById(lessonId);
+        if (!currentLesson) {
+          setDataError('Dars topilmadi.');
+          setLesson(null);
+          setAllLessonsInCourse([]);
+          return;
+        }
+        const courseLessons = await getLessonsByCourseId(currentLesson.courseId);
+        setLesson(currentLesson);
+        setAllLessonsInCourse(courseLessons);
+        if (currentUser) {
+          await updateUserProgress(currentUser.uid, currentLesson.courseId, currentLesson.id);
+        }
+      } catch (err: unknown) {
+        setDataError(err instanceof Error ? err.message : 'Darsni yuklashda xatolik.');
+      } finally {
+        setLoadingLesson(false);
+      }
     }
     fetchLessonData();
     window.scrollTo(0, 0);
     return () => stopAudio();
-  }, [lessonId]);
+  }, [lessonId, currentUser]);
 
   const prefetchSection = async (idx: number) => {
     if (!lesson) return;
@@ -155,7 +175,7 @@ const LessonView: React.FC<Props> = ({ prefs }) => {
       isPlayingRef.current = true;
       if (!getGeminiApiKey() || isTtsBlocked()) {
         const text = lesson?.content?.sections
-          ?.map((section: any) => `${section.title}. ${section.content}`)
+          ?.map((section: LessonSection) => `${section.title}. ${section.content}`)
           .join(' ');
         const utter = text ? createSpeechUtterance(text) : null;
         if (!utter) {
@@ -178,8 +198,8 @@ const LessonView: React.FC<Props> = ({ prefs }) => {
   }, [lesson]);
 
   useEffect(() => {
-    const handleAudioCommand = (e: any) => {
-      const action = e.detail;
+  const handleAudioCommand = (event: Event) => {
+      const action = (event as CustomEvent<string>).detail;
       if (action === 'play') toggleAudio();
       else if (action === 'pause' || action === 'stop') stopAudio();
     };
@@ -214,12 +234,13 @@ const LessonView: React.FC<Props> = ({ prefs }) => {
     return () => window.removeEventListener('keydown', handleShortcuts);
   }, [prevLesson, nextLesson, navigate, isPlaying, lesson]);
 
-  if (!lesson) return <div className="p-20 text-center font-black text-3xl uppercase">Yuklanmoqda...</div>;
+  if (loadingLesson) return <div className="p-20 text-center font-black text-3xl uppercase">Yuklanmoqda...</div>;
+  if (dataError || !lesson) return <div className="p-20 text-center font-black text-3xl uppercase">{dataError || 'Dars topilmadi.'}</div>;
 
   return (
     <div className="max-w-4xl mx-auto py-12 space-y-16 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-        <Link to={`/courses/${lesson.course_id}`} className="brutal-btn bg-white">← ORQAGA</Link>
+        <Link to={`/courses/${lesson.courseId}`} className="brutal-btn bg-white">← ORQAGA</Link>
         
         <div className="flex flex-col items-center">
           <button 
@@ -238,7 +259,7 @@ const LessonView: React.FC<Props> = ({ prefs }) => {
       <div className="brutal-card p-10 bg-white">
         <h1 className="text-5xl md:text-7xl font-black mb-12 border-b-8 border-slate-900 pb-6 uppercase leading-none tracking-tighter">{lesson.title}</h1>
         <div className="space-y-12">
-          {lesson.content.sections.map((section: any, idx: number) => (
+          {lesson.content.sections.map((section: LessonSection, idx: number) => (
             <section key={idx} className="transition-all duration-500">
               <h3 className={`text-2xl font-black mb-4 uppercase italic tracking-tight transition-colors ${isPlaying && currentActiveChunk === idx ? 'text-indigo-600' : 'text-slate-400'}`}>
                 {section.title}

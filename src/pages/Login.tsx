@@ -1,28 +1,25 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '../firebase';
 
-interface Props {
-  onLoginSuccess: (user: any) => void;
-}
-
-const Login: React.FC<Props> = ({ onLoginSuccess }) => {
+const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleDemoLogin = () => {
+  const handleGoogleLogin = async () => {
     setIsLoading(true);
-    const mockUser = {
-      id: 'demo-' + Math.random(),
-      email: 'mehmon@e-imkon.uz',
-      user_metadata: { full_name: 'Aziz Mehmon (Demo)' }
-    };
-    
-    setTimeout(() => {
-      onLoginSuccess(mockUser);
-      setIsLoading(false);
+    setError(null);
+    try {
+      await signInWithPopup(auth, googleProvider);
       navigate('/', { replace: true });
-    }, 400);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Google orqali kirishda xatolik.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -37,25 +34,30 @@ const Login: React.FC<Props> = ({ onLoginSuccess }) => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-          <div className="brutal-btn py-6 flex flex-col items-center justify-center gap-3 bg-gray-100 cursor-not-allowed opacity-70">
-            <span className="text-3xl">🔒</span>
-            <span className="font-black text-lg uppercase">Google bilan kirish</span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Hozircha mavjud emas</span>
-          </div>
-
           <button 
-            onClick={handleDemoLogin}
+            onClick={handleGoogleLogin}
             disabled={isLoading}
-            className="brutal-btn py-6 flex flex-col items-center justify-center gap-3 bg-yellow-400 group"
+            className="brutal-btn py-6 flex flex-col items-center justify-center gap-3 bg-white border-4 border-slate-900 group"
           >
-            <span className="text-4xl group-hover:rotate-12 transition-transform">🚀</span>
-            <span className="font-black text-lg uppercase">Mehmon bo'lib kirish</span>
+            <span className="text-4xl group-hover:rotate-6 transition-transform">🔐</span>
+            <span className="font-black text-lg uppercase">Google bilan kirish</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Xavfsiz kirish</span>
           </button>
+
+          <div className="brutal-btn py-6 flex flex-col items-center justify-center gap-3 bg-gray-100 opacity-70">
+            <span className="text-3xl">✅</span>
+            <span className="font-black text-lg uppercase">Profil va progress</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Firebase bilan saqlanadi</span>
+          </div>
         </div>
+
+        {error && (
+          <p className="text-xs font-bold text-red-600 text-center mb-6">{error}</p>
+        )}
 
         <div className="border-t-4 border-slate-100 pt-8 text-center">
           <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
-            Bu demo frontend versiyasi.
+            Google login uchun Firebase konfiguratsiyasi kerak.
           </p>
         </div>
       </div>

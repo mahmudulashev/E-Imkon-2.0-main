@@ -1,9 +1,9 @@
 type EnvSource = 'meta' | 'process';
 
 const readMetaEnv = (key: string): string => {
-  // @ts-ignore - import.meta.env is provided by Vite at build time.
+  // @ts-expect-error - import.meta.env is provided by Vite at build time.
   if (typeof import.meta !== 'undefined' && import.meta.env) {
-    // @ts-ignore
+    // @ts-expect-error - import.meta.env is provided by Vite at build time.
     const value = import.meta.env[key];
     return typeof value === 'string' ? value : '';
   }
@@ -35,9 +35,9 @@ export const listEnvKeys = (source: EnvSource, match: (key: string) => boolean):
     return [];
   }
 
-  // @ts-ignore - import.meta.env is provided by Vite at build time.
+  // @ts-expect-error - import.meta.env is provided by Vite at build time.
   if (typeof import.meta !== 'undefined' && import.meta.env) {
-    // @ts-ignore
+    // @ts-expect-error - import.meta.env is provided by Vite at build time.
     return Object.keys(import.meta.env).filter(match);
   }
   return [];
@@ -51,3 +51,21 @@ export const getSupabaseAnonKey = (): string =>
 
 export const getGeminiApiKey = (): string =>
   getEnvAny(['VITE_GEMINI_API_KEY', 'VITE_API_KEY', 'GEMINI_API_KEY', 'API_KEY']);
+
+export const getFirebaseApiKey = (): string =>
+  getEnvAny(['VITE_FIREBASE_API_KEY', 'FIREBASE_API_KEY']);
+
+export const getFirebaseAuthDomain = (): string =>
+  getEnvAny(['VITE_FIREBASE_AUTH_DOMAIN', 'FIREBASE_AUTH_DOMAIN']);
+
+export const getFirebaseProjectId = (): string =>
+  getEnvAny(['VITE_FIREBASE_PROJECT_ID', 'FIREBASE_PROJECT_ID']);
+
+export const getFirebaseStorageBucket = (): string =>
+  getEnvAny(['VITE_FIREBASE_STORAGE_BUCKET', 'FIREBASE_STORAGE_BUCKET']);
+
+export const getFirebaseMessagingSenderId = (): string =>
+  getEnvAny(['VITE_FIREBASE_MESSAGING_SENDER_ID', 'FIREBASE_MESSAGING_SENDER_ID']);
+
+export const getFirebaseAppId = (): string =>
+  getEnvAny(['VITE_FIREBASE_APP_ID', 'FIREBASE_APP_ID']);

@@ -1,28 +1,78 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import type { UserPreferences } from '../types';
-import { MOCK_COURSES, MOCK_LESSONS } from '../mockData';
+import type { UserPreferences, Course, Lesson, UserProfile } from '../types';
+import type { User } from 'firebase/auth';
+import { enrollInCourse, getCourseById, getLessonsByCourseId, getUserProgressByCourseId } from '../firebaseData';
 
 interface Props {
   prefs: UserPreferences;
+  currentUser: User | null;
+  profile: UserProfile | null;
+  setProfile: (profile: UserProfile | null) => void;
 }
 
-const CourseView: React.FC<Props> = ({ prefs }) => {
+const CourseView: React.FC<Props> = ({ prefs, currentUser, profile, setProfile }) => {
   const { subjectId } = useParams<{ subjectId: string }>();
-  const [course, setCourse] = useState<any>(null);
-  const [lessons, setLessons] = useState<any[]>([]);
+  const [course, setCourse] = useState<Course | null>(null);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [enrolling, setEnrolling] = useState(false);
+  const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function fetchData() {
-      setCourse(MOCK_COURSES.find(c => c.id === subjectId));
-      setLessons(MOCK_LESSONS[subjectId as keyof typeof MOCK_LESSONS] || []);
-      setLoading(false);
+      if (!subjectId) return;
+      try {
+        const [courseData, lessonData] = await Promise.all([
+          getCourseById(subjectId),
+          getLessonsByCourseId(subjectId),
+        ]);
+        setCourse(courseData);
+        setLessons(lessonData);
+        if (currentUser) {
+          const progress = await getUserProgressByCourseId(currentUser.uid, subjectId);
+          setCompletedLessonIds(new Set(progress?.completedLessonIds || []));
+        } else {
+          setCompletedLessonIds(new Set());
+        }
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Kursni yuklashda xatolik.');
+      } finally {
+        setLoading(false);
+      }
     }
     fetchData();
-  }, [subjectId]);
+  }, [subjectId, currentUser]);
 
   if (loading) return <div role="alert" className="p-20 text-center font-black text-3xl">Yuklanmoqda...</div>;
+  if (error || !course) {
+    return (
+      <div role="alert" className="p-20 text-center font-black text-3xl">
+        {error || 'Kurs topilmadi.'}
+      </div>
+    );
+  }
+
+  const isEnrolled = !!profile?.enrolledCourseIds?.includes(course.id);
+
+  const handleEnroll = async () => {
+    if (!currentUser || !course) return;
+    setEnrolling(true);
+    try {
+      await enrollInCourse(currentUser.uid, course.id);
+      if (profile) {
+        setProfile({
+          ...profile,
+          enrolledCourseIds: Array.from(new Set([...profile.enrolledCourseIds, course.id])),
+        });
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Kursga yozilishda xatolik.');
+    } finally {
+      setEnrolling(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto py-10 space-y-12 animate-in fade-in duration-500">
@@ -33,20 +83,37 @@ const CourseView: React.FC<Props> = ({ prefs }) => {
           <h1 className="text-7xl font-black mb-4 tracking-tighter uppercase leading-none">{course?.name}</h1>
           <p className="text-2xl text-slate-600 font-bold handwritten italic">{course?.description}</p>
         </div>
-        <div className="brutal-card bg-yellow-300 p-6 -rotate-2" aria-label={`${lessons.length} ta dars mavjud`}>
-           <span className="text-3xl font-black">{lessons.length} TA DARS</span>
+        <div className="flex flex-col items-start gap-4">
+          <div className="brutal-card bg-yellow-300 p-6 -rotate-2" aria-label={`${lessons.length} ta dars mavjud`}>
+             <span className="text-3xl font-black">{lessons.length} TA DARS</span>
+          </div>
+          <button
+            onClick={handleEnroll}
+            disabled={isEnrolled || enrolling}
+            className={`brutal-btn ${isEnrolled ? 'bg-green-500 text-black' : 'bg-white text-black'} font-black`}
+          >
+            {isEnrolled ? 'YOZILGANSIZ ✅' : enrolling ? 'YOZILMOQDA...' : 'KURSGA YOZILISH'}
+          </button>
         </div>
       </header>
 
       <nav aria-label="Darslar ro'yxati" className="grid gap-8">
-        {lessons.length > 0 ? lessons.map((lesson, idx) => (
+        {lessons.length > 0 ? lessons.map((lesson, idx) => {
+          const isCompleted = completedLessonIds.has(lesson.id);
+          const baseCardClass = prefs.contrast === 'high'
+            ? 'bg-black border-yellow-400 text-yellow-400'
+            : 'bg-white';
+          const completedClass = prefs.contrast === 'high'
+            ? 'bg-green-400 text-black border-slate-900'
+            : 'bg-green-100 border-green-500';
+          return (
           <Link 
             key={lesson.id} 
             to={`/lesson/${lesson.id}`} 
             className="group"
             aria-label={`${idx + 1}-dars: ${lesson.title}. Davomiyligi ${lesson.duration}`}
           >
-            <div className={`brutal-card p-8 flex items-center gap-8 ${prefs.contrast === 'high' ? 'bg-black border-yellow-400 text-yellow-400' : 'bg-white'}`}>
+            <div className={`brutal-card p-8 flex items-center gap-8 ${isCompleted ? completedClass : baseCardClass}`}>
               <div className="w-16 h-16 brutal-card bg-slate-900 text-black flex items-center justify-center text-3xl font-black group-hover:bg-indigo-600 transition-colors" aria-hidden="true">
                 {idx + 1}
               </div>
@@ -59,11 +126,13 @@ const CourseView: React.FC<Props> = ({ prefs }) => {
                 </div>
               </div>
               <div className="hidden md:block">
-                <span className="brutal-btn bg-slate-100 group-hover:bg-yellow-400 text-black transition-colors" aria-hidden="true">BOSHLASH →</span>
+                <span className={`brutal-btn ${isCompleted ? 'bg-green-500 text-black' : 'bg-slate-100 group-hover:bg-yellow-400 text-black'} transition-colors`} aria-hidden="true">
+                  {isCompleted ? 'TUGATILGAN ✅' : 'BOSHLASH →'}
+                </span>
               </div>
             </div>
           </Link>
-        )) : (
+        )}) : (
           <div role="status" className="text-center py-20 brutal-card bg-slate-50 opacity-50 font-bold text-xl uppercase italic">
             Darslar mavjud emas.
           </div>

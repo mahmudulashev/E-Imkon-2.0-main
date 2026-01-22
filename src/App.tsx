@@ -1,23 +1,30 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import type { UserPreferences } from './types';
+import type { UserPreferences, UserProfile } from './types';
 import Home from './pages/Home';
 import CourseView from './pages/CourseView';
 import LessonView from './pages/LessonView';
 import Login from './pages/Login';
 import Documentation from './pages/Documentation';
+import Profile from './pages/Profile';
+import AdminPanel from './pages/AdminPanel';
 import AccessibilityPanel from './components/AccessibilityPanel';
 import AITutor from './components/AITutor';
 import { generateSpeech, decode, decodeAudioData, playSoundCue } from './geminiService';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import type { User } from 'firebase/auth';
+import { auth } from './firebase';
+import { ensureUserProfile, getUserProfile } from './firebaseData';
 
 const AppContent: React.FC<{ 
   prefs: UserPreferences; 
   setPrefs: React.Dispatch<React.SetStateAction<UserPreferences>>; 
-  currentUser: any; 
-  setCurrentUser: (u: any) => void;
+  currentUser: User | null; 
+  profile: UserProfile | null;
+  setProfile: (profile: UserProfile | null) => void;
   handleLogout: () => void;
-}> = ({ prefs, setPrefs, currentUser, setCurrentUser, handleLogout }) => {
+}> = ({ prefs, setPrefs, currentUser, profile, setProfile, handleLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -26,7 +33,9 @@ const AppContent: React.FC<{
 
   const getCtx = async () => {
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      const AudioCtx = window.AudioContext || (window as Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) throw new Error('AudioContext not supported');
+      audioContextRef.current = new AudioCtx({ sampleRate: 24000 });
     }
     if (audioContextRef.current.state === 'suspended') await audioContextRef.current.resume();
     return audioContextRef.current;
@@ -115,6 +124,10 @@ const AppContent: React.FC<{
             {currentUser ? (
               <>
                 <Link to="/docs" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Yo'riqnoma</Link>
+                <Link to="/profile" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Profil</Link>
+                {profile?.role === 'admin' && (
+                  <Link to="/admin" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Admin</Link>
+                )}
                 <button 
                   onClick={handleLogout}
                   className="font-black text-sm uppercase opacity-50 hover:opacity-100 transition-opacity"
@@ -131,10 +144,12 @@ const AppContent: React.FC<{
       <main id="main-content" className="flex-grow max-w-7xl mx-auto w-full p-6 outline-none" tabIndex={-1}>
         <Routes>
           <Route path="/" element={currentUser ? <Home prefs={prefs} /> : <Navigate to="/login" replace />} />
-          <Route path="/login" element={!currentUser ? <Login onLoginSuccess={setCurrentUser} /> : <Navigate to="/" replace />} />
+          <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" replace />} />
           <Route path="/docs" element={currentUser ? <Documentation prefs={prefs} /> : <Navigate to="/login" replace />} />
-          <Route path="/courses/:subjectId" element={currentUser ? <CourseView prefs={prefs} /> : <Navigate to="/login" replace />} />
-          <Route path="/lesson/:lessonId" element={currentUser ? <LessonView prefs={prefs} /> : <Navigate to="/login" replace />} />
+          <Route path="/profile" element={currentUser ? <Profile prefs={prefs} currentUser={currentUser} profile={profile} /> : <Navigate to="/login" replace />} />
+          <Route path="/admin" element={currentUser && profile?.role === 'admin' ? <AdminPanel prefs={prefs} /> : <Navigate to="/" replace />} />
+          <Route path="/courses/:subjectId" element={currentUser ? <CourseView prefs={prefs} currentUser={currentUser} profile={profile} setProfile={setProfile} /> : <Navigate to="/login" replace />} />
+          <Route path="/lesson/:lessonId" element={currentUser ? <LessonView prefs={prefs} currentUser={currentUser} /> : <Navigate to="/login" replace />} />
         </Routes>
       </main>
       {currentUser && <AccessibilityPanel prefs={prefs} setPrefs={setPrefs} />}
@@ -144,7 +159,9 @@ const AppContent: React.FC<{
 };
 
 const App: React.FC = () => {
-  const [demoUser, setDemoUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [prefs, setPrefs] = useState<UserPreferences>(() => {
     const saved = localStorage.getItem('e_imkon_prefs');
     return saved ? JSON.parse(saved) : { fontSize: 15, contrast: 'normal', voiceSupport: true };
@@ -159,27 +176,39 @@ const App: React.FC = () => {
   }, [prefs.fontSize]);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('e_imkon_demo_user');
-    if (savedUser) setDemoUser(JSON.parse(savedUser));
-    
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      if (user) {
+        const ensured = await ensureUserProfile(user);
+        const fresh = await getUserProfile(user.uid);
+        setProfile(fresh || ensured);
+      } else {
+        setProfile(null);
+      }
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleLogout = async () => {
-    localStorage.removeItem('e_imkon_demo_user');
-    setDemoUser(null);
+    await signOut(auth);
   };
 
-  const handleLoginSuccess = (user: any) => {
-    setDemoUser(user);
-    localStorage.setItem('e_imkon_demo_user', JSON.stringify(user));
-  };
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="font-black text-2xl uppercase">Yuklanmoqda...</div>
+      </div>
+    );
+  }
 
   return (
     <HashRouter>
       <AppContent 
         prefs={prefs} setPrefs={setPrefs} 
-        currentUser={demoUser} 
-        setCurrentUser={handleLoginSuccess}
+        currentUser={currentUser} 
+        profile={profile}
+        setProfile={setProfile}
         handleLogout={handleLogout}
       />
     </HashRouter>
