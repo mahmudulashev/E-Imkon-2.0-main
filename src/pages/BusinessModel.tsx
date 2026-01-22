@@ -46,11 +46,11 @@ const BusinessModel: React.FC<Props> = ({ prefs }) => {
           </ul>
         </div>
 
-        <div className="brutal-card p-8 bg-slate-900 text-white border-slate-900">
+        <div className="brutal-card p-8 bg-slate-900 text-black border-slate-900">
           <div className="text-xs font-black uppercase tracking-widest text-yellow-400">Oyma‑oy</div>
           <h2 className="text-3xl font-black mt-3">1 oy</h2>
           <p className="text-4xl font-black mt-6">49 000 so'm</p>
-          <ul className="mt-6 space-y-3 text-sm font-bold text-white/80">
+          <ul className="mt-6 space-y-3 text-sm font-bold text-black">
             <li>• Barcha kurslar</li>
             <li>• AI yordamchi</li>
             <li>• Progress saqlanadi</li>
