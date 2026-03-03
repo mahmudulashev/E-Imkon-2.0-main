@@ -68,21 +68,34 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 };
 
 export const getCourses = async (): Promise<Course[]> => {
-  const snap = await getDocs(collection(db, 'courses'));
-  const courses = snap.docs.map(courseFromDoc);
-  return courses.length ? courses : MOCK_COURSES;
+  try {
+    const snap = await getDocs(collection(db, 'courses'));
+    const courses = snap.docs.map(courseFromDoc);
+    return courses.length ? courses : MOCK_COURSES;
+  } catch {
+    return MOCK_COURSES;
+  }
 };
 
 export const getCourseById = async (courseId: string): Promise<Course | null> => {
-  const snap = await getDoc(doc(db, 'courses', courseId));
-  if (snap.exists()) return courseFromDoc(snap);
+  try {
+    const snap = await getDoc(doc(db, 'courses', courseId));
+    if (snap.exists()) return courseFromDoc(snap);
+  } catch {
+    // fall through to mock
+  }
   return MOCK_COURSES.find((course) => course.id === courseId) ?? null;
 };
 
 export const getLessonsByCourseId = async (courseId: string): Promise<Lesson[]> => {
-  const lessonsQuery = query(collection(db, 'lessons'), where('courseId', '==', courseId));
-  const snap = await getDocs(lessonsQuery);
-  let lessons = snap.docs.map(lessonFromDoc);
+  let lessons: Lesson[] = [];
+  try {
+    const lessonsQuery = query(collection(db, 'lessons'), where('courseId', '==', courseId));
+    const snap = await getDocs(lessonsQuery);
+    lessons = snap.docs.map(lessonFromDoc);
+  } catch {
+    lessons = [];
+  }
   if (!lessons.length && mockLessonsByCourse[courseId]) {
     lessons = mockLessonsByCourse[courseId].map(mapMockLesson);
   }
@@ -90,8 +103,12 @@ export const getLessonsByCourseId = async (courseId: string): Promise<Lesson[]> 
 };
 
 export const getLessonById = async (lessonId: string): Promise<Lesson | null> => {
-  const snap = await getDoc(doc(db, 'lessons', lessonId));
-  if (snap.exists()) return lessonFromDoc(snap);
+  try {
+    const snap = await getDoc(doc(db, 'lessons', lessonId));
+    if (snap.exists()) return lessonFromDoc(snap);
+  } catch {
+    // fall through to mock
+  }
   const mockLesson = Object.values(mockLessonsByCourse)
     .flat()
     .find((lesson) => lesson.id === lessonId);

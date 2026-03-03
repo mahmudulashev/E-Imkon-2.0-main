@@ -1,16 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Course, UserPreferences, UserProfile, UserProgress } from '../types';
-import type { User } from 'firebase/auth';
-import { getCourses, getLessonsByCourseId, getUserProgress } from '../firebaseData';
+import { getCourses, getLessonsByCourseId } from '../firebaseData';
+import { getLocalUserProgress } from '../localUserData';
 
 interface Props {
   prefs: UserPreferences;
-  currentUser: User | null;
-  profile: UserProfile | null;
+  uid: string;
+  profile: UserProfile;
 }
 
-const Profile: React.FC<Props> = ({ prefs, currentUser, profile }) => {
+const Profile: React.FC<Props> = ({ prefs, uid, profile }) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [progress, setProgress] = useState<UserProgress[]>([]);
   const [lessonCounts, setLessonCounts] = useState<Record<string, number>>({});
@@ -20,12 +20,9 @@ const Profile: React.FC<Props> = ({ prefs, currentUser, profile }) => {
 
   useEffect(() => {
     async function loadProfileData() {
-      if (!currentUser) return;
       try {
-        const [courseData, progressData] = await Promise.all([
-          getCourses(),
-          getUserProgress(currentUser.uid),
-        ]);
+        const courseData = await getCourses();
+        const progressData = getLocalUserProgress(uid);
         setCourses(courseData);
         setProgress(progressData);
         const enrolledIds = new Set(profile?.enrolledCourseIds || []);
@@ -48,7 +45,7 @@ const Profile: React.FC<Props> = ({ prefs, currentUser, profile }) => {
       }
     }
     loadProfileData();
-  }, [currentUser, profile]);
+  }, [uid, profile]);
 
   const progressMap = useMemo(() => {
     return new Map(progress.map((p) => [p.courseId, p]));
@@ -70,10 +67,10 @@ const Profile: React.FC<Props> = ({ prefs, currentUser, profile }) => {
         <div>
           <h1 className="text-6xl font-black uppercase tracking-tight">Profil</h1>
           <p className="text-xl font-bold text-slate-600">
-            {profile?.displayName || currentUser?.displayName || 'Oquvchi'}
+            {profile.displayName || 'Mehmon'}
           </p>
           <p className="text-xs font-black uppercase tracking-widest text-slate-400">
-            {currentUser?.email}
+            {profile.email}
           </p>
         </div>
         <div className="brutal-card bg-indigo-100 p-6">

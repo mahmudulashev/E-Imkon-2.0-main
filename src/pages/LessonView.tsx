@@ -2,18 +2,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import type { UserPreferences, Lesson } from '../types';
-import type { User } from 'firebase/auth';
 import { generateSpeech, decode, decodeAudioData, createSpeechUtterance, isTtsBlocked } from '../geminiService';
 import { getGeminiApiKey } from '../env';
-import { getLessonById, getLessonsByCourseId, updateUserProgress } from '../firebaseData';
+import { getLessonById, getLessonsByCourseId } from '../firebaseData';
+import { updateLocalUserProgress } from '../localUserData';
 import Quiz from '../components/Quiz';
 
 interface Props {
   prefs: UserPreferences;
-  currentUser: User | null;
+  uid: string;
 }
 
-const LessonView: React.FC<Props> = ({ prefs, currentUser }) => {
+const LessonView: React.FC<Props> = ({ prefs, uid }) => {
   const { lessonId } = useParams<{ lessonId: string }>();
   const navigate = useNavigate();
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -69,7 +69,7 @@ const LessonView: React.FC<Props> = ({ prefs, currentUser }) => {
     fetchLessonData();
     window.scrollTo(0, 0);
     return () => stopAudio();
-  }, [lessonId, currentUser]);
+  }, [lessonId]);
 
   const prefetchSection = async (idx: number) => {
     if (!lesson) return;
@@ -218,9 +218,9 @@ const LessonView: React.FC<Props> = ({ prefs, currentUser }) => {
   const nextLesson = currentIndex !== -1 && currentIndex < allLessonsInCourse.length - 1 ? allLessonsInCourse[currentIndex + 1] : null;
 
   const markCompleted = async () => {
-    if (!currentUser || !lesson) return;
+    if (!lesson) return;
     try {
-      await updateUserProgress(currentUser.uid, lesson.courseId, lesson.id);
+      updateLocalUserProgress(uid, lesson.courseId, lesson.id);
     } catch (err) {
       console.error('Progress update failed:', err);
     }

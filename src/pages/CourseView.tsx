@@ -1,17 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import type { UserPreferences, Course, Lesson, UserProfile } from '../types';
-import type { User } from 'firebase/auth';
-import { enrollInCourse, getCourseById, getLessonsByCourseId, getUserProgressByCourseId } from '../firebaseData';
+import { getCourseById, getLessonsByCourseId } from '../firebaseData';
+import { enrollLocalCourse, getLocalUserProgressByCourseId } from '../localUserData';
 
 interface Props {
   prefs: UserPreferences;
-  currentUser: User | null;
-  profile: UserProfile | null;
-  setProfile: (profile: UserProfile | null) => void;
+  uid: string;
+  profile: UserProfile;
+  setProfile: (profile: UserProfile) => void;
 }
 
-const CourseView: React.FC<Props> = ({ prefs, currentUser, profile, setProfile }) => {
+const CourseView: React.FC<Props> = ({ prefs, uid, profile, setProfile }) => {
   const { subjectId } = useParams<{ subjectId: string }>();
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -33,12 +33,8 @@ const CourseView: React.FC<Props> = ({ prefs, currentUser, profile, setProfile }
         ]);
         setCourse(courseData);
         setLessons(lessonData);
-        if (currentUser) {
-          const progress = await getUserProgressByCourseId(currentUser.uid, subjectId);
-          setCompletedLessonIds(new Set(progress?.completedLessonIds || []));
-        } else {
-          setCompletedLessonIds(new Set());
-        }
+        const progress = getLocalUserProgressByCourseId(uid, subjectId);
+        setCompletedLessonIds(new Set(progress?.completedLessonIds || []));
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Kursni yuklashda xatolik.');
       } finally {
@@ -46,7 +42,7 @@ const CourseView: React.FC<Props> = ({ prefs, currentUser, profile, setProfile }
       }
     }
     fetchData();
-  }, [subjectId, currentUser]);
+  }, [subjectId, uid]);
 
   useEffect(() => {
     setActiveLessonIndex(0);
@@ -110,23 +106,18 @@ const CourseView: React.FC<Props> = ({ prefs, currentUser, profile, setProfile }
     );
   }
 
-  const isEnrolled = !!profile?.enrolledCourseIds?.includes(course.id);
+  const isEnrolled = profile.enrolledCourseIds.includes(course.id);
   const totalLessons = lessons.length;
   const completedCount = completedLessonIds.size;
   const progressPercent = totalLessons ? Math.round((completedCount / totalLessons) * 100) : 0;
   const progressLabel = `${completedCount}/${totalLessons}`;
 
   const handleEnroll = async () => {
-    if (!currentUser || !course) return;
+    if (!course) return;
     setEnrolling(true);
     try {
-      await enrollInCourse(currentUser.uid, course.id);
-      if (profile) {
-        setProfile({
-          ...profile,
-          enrolledCourseIds: Array.from(new Set([...profile.enrolledCourseIds, course.id])),
-        });
-      }
+      const next = enrollLocalCourse(course.id);
+      setProfile(next);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Kursga yozilishda xatolik.');
     } finally {

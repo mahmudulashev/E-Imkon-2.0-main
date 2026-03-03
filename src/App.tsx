@@ -5,7 +5,6 @@ import type { UserPreferences, UserProfile } from './types';
 import Home from './pages/Home';
 import CourseView from './pages/CourseView';
 import LessonView from './pages/LessonView';
-import Login from './pages/Login';
 import Documentation from './pages/Documentation';
 import Profile from './pages/Profile';
 import AdminPanel from './pages/AdminPanel';
@@ -13,19 +12,15 @@ import BusinessModel from './pages/BusinessModel';
 import AccessibilityPanel from './components/AccessibilityPanel';
 import AITutor from './components/AITutor';
 import { generateSpeech, decode, decodeAudioData, playSoundCue } from './geminiService';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import type { User } from 'firebase/auth';
-import { auth } from './firebase';
-import { ensureUserProfile, getUserProfile } from './firebaseData';
+import { getOrCreateLocalUid, loadLocalProfile, saveLocalProfile } from './localUserData';
 
 const AppContent: React.FC<{ 
   prefs: UserPreferences; 
   setPrefs: React.Dispatch<React.SetStateAction<UserPreferences>>; 
-  currentUser: User | null; 
-  profile: UserProfile | null;
-  setProfile: (profile: UserProfile | null) => void;
-  handleLogout: () => void;
-}> = ({ prefs, setPrefs, currentUser, profile, setProfile, handleLogout }) => {
+  uid: string;
+  profile: UserProfile;
+  setProfile: (profile: UserProfile) => void;
+}> = ({ prefs, setPrefs, uid, profile, setProfile }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -68,14 +63,12 @@ const AppContent: React.FC<{
   };
 
   useEffect(() => {
-    if (currentUser) {
-      getCtx().then(ctx => playSoundCue('nav', ctx));
-      const pageName = location.pathname === '/' ? 'Bosh sahifa' :
-                       location.pathname.includes('lesson') ? 'Dars sahifasi' :
-                       location.pathname.includes('course') ? 'Kurs sahifasi' : 'Sahifa';
-      speakGlobal(pageName + " yuklandi.");
-    }
-  }, [location.pathname, currentUser]);
+    getCtx().then(ctx => playSoundCue('nav', ctx));
+    const pageName = location.pathname === '/' ? 'Bosh sahifa' :
+                     location.pathname.includes('lesson') ? 'Dars sahifasi' :
+                     location.pathname.includes('course') ? 'Kurs sahifasi' : 'Sahifa';
+    speakGlobal(pageName + " yuklandi.");
+  }, [location.pathname]);
 
   useEffect(() => {
     const handleShortcuts = (e: KeyboardEvent) => {
@@ -100,7 +93,7 @@ const AppContent: React.FC<{
   }, [navigate, setPrefs]);
 
   useEffect(() => {
-    if (!prefs.voiceSupport || !currentUser) return;
+    if (!prefs.voiceSupport) return;
 
     const speakFocus = (e: FocusEvent) => {
       const target = e.target as HTMLElement;
@@ -116,7 +109,7 @@ const AppContent: React.FC<{
 
     document.addEventListener('focus', speakFocus, true);
     return () => document.removeEventListener('focus', speakFocus, true);
-  }, [prefs.voiceSupport, currentUser]);
+  }, [prefs.voiceSupport]);
 
   return (
     <div className={`min-h-screen flex flex-col transition-all duration-300 font-main ${prefs.contrast === 'high' ? 'contrast-high' : 'contrast-normal'}`}>
@@ -127,91 +120,67 @@ const AppContent: React.FC<{
             <span className="text-4xl font-black tracking-tighter uppercase">IMKON</span>
           </Link>
           <div className="flex items-center space-x-8">
-            {currentUser ? (
-              <>
-                <div className="hidden md:flex items-center space-x-8">
-                  <Link to="/" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Bosh sahifa</Link>
-                  <Link to="/docs" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Yo'riqnoma</Link>
-                  <Link to="/business" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Biznes model</Link>
-                  <Link to="/profile" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Profil</Link>
-                  {profile?.role === 'admin' && (
-                    <Link to="/admin" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Admin</Link>
-                  )}
-                  <button 
-                    onClick={handleLogout}
-                    className="font-black text-sm uppercase opacity-50 hover:opacity-100 transition-opacity"
-                  >
-                    Chiqish
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  aria-label="Menyu"
-                  aria-expanded={isMenuOpen}
-                  onClick={() => setIsMenuOpen((prev) => !prev)}
-                  className="md:hidden brutal-btn bg-yellow-400 px-4 py-2 font-black uppercase text-black"
-                >
-                  ☰
-                </button>
-              </>
-            ) : null}
+            <>
+              <div className="hidden md:flex items-center space-x-8">
+                <Link to="/" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Bosh sahifa</Link>
+                <Link to="/docs" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Yo'riqnoma</Link>
+                <Link to="/business" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Biznes model</Link>
+                <Link to="/profile" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Profil</Link>
+                <Link to="/admin" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Admin</Link>
+              </div>
+              <button
+                type="button"
+                aria-label="Menyu"
+                aria-expanded={isMenuOpen}
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+                className="md:hidden brutal-btn bg-yellow-400 px-4 py-2 font-black uppercase text-black"
+              >
+                ☰
+              </button>
+            </>
           </div>
         </div>
-        {currentUser && (
-          <div className={`md:hidden px-6 pb-6 ${isMenuOpen ? 'block' : 'hidden'}`}>
-            <div className="brutal-card bg-white border-4 border-slate-900 p-4 space-y-4">
-              <Link to="/" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
-                Bosh sahifa
-              </Link>
-              <Link to="/docs" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
-                Yo'riqnoma
-              </Link>
-              <Link to="/business" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
-                Biznes model
-              </Link>
-              <Link to="/profile" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
-                Profil
-              </Link>
-              {profile?.role === 'admin' && (
-                <Link to="/admin" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
-                  Admin
-                </Link>
-              )}
-              <button
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  handleLogout();
-                }}
-                className="w-full brutal-btn bg-slate-900 text-black font-black uppercase"
-              >
-                Chiqish
-              </button>
-            </div>
+        <div className={`md:hidden px-6 pb-6 ${isMenuOpen ? 'block' : 'hidden'}`}>
+          <div className="brutal-card bg-white border-4 border-slate-900 p-4 space-y-4">
+            <Link to="/" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
+              Bosh sahifa
+            </Link>
+            <Link to="/docs" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
+              Yo'riqnoma
+            </Link>
+            <Link to="/business" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
+              Biznes model
+            </Link>
+            <Link to="/profile" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
+              Profil
+            </Link>
+            <Link to="/admin" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
+              Admin
+            </Link>
           </div>
-        )}
+        </div>
       </nav>
       <main id="main-content" className="flex-grow max-w-7xl mx-auto w-full p-6 outline-none" tabIndex={-1}>
         <Routes>
-          <Route path="/" element={currentUser ? <Home prefs={prefs} /> : <Navigate to="/login" replace />} />
-          <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" replace />} />
-          <Route path="/docs" element={currentUser ? <Documentation prefs={prefs} /> : <Navigate to="/login" replace />} />
+          <Route path="/" element={<Home prefs={prefs} />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/docs" element={<Documentation prefs={prefs} />} />
           <Route path="/business" element={<BusinessModel prefs={prefs} />} />
-          <Route path="/profile" element={currentUser ? <Profile prefs={prefs} currentUser={currentUser} profile={profile} /> : <Navigate to="/login" replace />} />
-          <Route path="/admin" element={currentUser && profile?.role === 'admin' ? <AdminPanel prefs={prefs} /> : <Navigate to="/" replace />} />
-          <Route path="/courses/:subjectId" element={currentUser ? <CourseView prefs={prefs} currentUser={currentUser} profile={profile} setProfile={setProfile} /> : <Navigate to="/login" replace />} />
-          <Route path="/lesson/:lessonId" element={currentUser ? <LessonView prefs={prefs} currentUser={currentUser} /> : <Navigate to="/login" replace />} />
+          <Route path="/profile" element={<Profile prefs={prefs} uid={uid} profile={profile} />} />
+          <Route path="/admin" element={<AdminPanel prefs={prefs} />} />
+          <Route path="/courses/:subjectId" element={<CourseView prefs={prefs} uid={uid} profile={profile} setProfile={setProfile} />} />
+          <Route path="/lesson/:lessonId" element={<LessonView prefs={prefs} uid={uid} />} />
         </Routes>
       </main>
-      {currentUser && <AccessibilityPanel prefs={prefs} setPrefs={setPrefs} />}
-      {currentUser && <AITutor />}
+      <AccessibilityPanel prefs={prefs} setPrefs={setPrefs} />
+      <AITutor />
     </div>
   );
 };
 
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [uid] = useState<string>(() => getOrCreateLocalUid());
+  const [profile, setProfile] = useState<UserProfile>(() => loadLocalProfile());
   const [prefs, setPrefs] = useState<UserPreferences>(() => {
     const saved = localStorage.getItem('e_imkon_prefs');
     if (saved) {
@@ -235,40 +204,16 @@ const App: React.FC = () => {
   }, [prefs.fontSize]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      if (user) {
-        const ensured = await ensureUserProfile(user);
-        const fresh = await getUserProfile(user.uid);
-        setProfile(fresh || ensured);
-      } else {
-        setProfile(null);
-      }
-      setAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogout = async () => {
-    await signOut(auth);
-  };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="font-black text-2xl uppercase">Yuklanmoqda...</div>
-      </div>
-    );
-  }
+    saveLocalProfile(profile);
+  }, [profile]);
 
   return (
     <HashRouter>
       <AppContent 
         prefs={prefs} setPrefs={setPrefs} 
-        currentUser={currentUser} 
+        uid={uid}
         profile={profile}
         setProfile={setProfile}
-        handleLogout={handleLogout}
       />
     </HashRouter>
   );
