@@ -2,7 +2,7 @@ export const MOCK_COURSES = [
   {
     id: 'english-101',
     name: 'Ingliz tili',
-    description: 'Boshlang\'ich darajadagilar uchun maxsus ingliz tili darslari. Ovozli yordam bilan oson o\'rganing.',
+    description: 'Eksklyuziv ingliz tili darslari: qisqa, aniq va amaliy. Ovozli yordam bilan oson o\'rganing.',
     icon: '🇬🇧',
     level_tag: 'A1-A2',
     color_hex: '#e0f2fe'
@@ -10,7 +10,7 @@ export const MOCK_COURSES = [
   {
     id: 'math-101',
     name: 'Matematika',
-    description: 'Mantiqiy fikrlash va asosiy arifmetik amallar. Murakkab misollarni AI yordamida yeching.',
+    description: 'Eksklyuziv matematika darslari: asosiy amallar, mantiq va real misollar.',
     icon: '🧮',
     level_tag: 'Boshlang\'ich',
     color_hex: '#fef3c7'
@@ -18,7 +18,7 @@ export const MOCK_COURSES = [
   {
     id: 'frontend-101',
     name: 'Frontend',
-    description: 'HTML, CSS va React orqali zamonaviy saytlar yaratishni noldan o\'rganing.',
+    description: 'Eksklyuziv frontend darslari: HTML, CSS, layout va React asoslari.',
     icon: '💻',
     level_tag: 'Professional',
     color_hex: '#f3e8ff'
@@ -178,6 +178,41 @@ export const MOCK_LESSONS = {
           }
         ]
       }
+    },
+    {
+      id: 'eng-exclusive-l5',
+      course_id: 'english-101',
+      title: 'Eksklyuziv: Daily Routine (Kun tartibi)',
+      duration: '18 daqiqa',
+      level: 'Boshlang\'ich',
+      order_index: 5,
+      content: {
+        sections: [
+          {
+            title: 'Asosiy fe’llar',
+            content: 'wake up, have breakfast, go to school/work, study, rest, go to bed. Har birini 3 marta talaffuz qiling va o\'zingizga mos jumla tuzing.'
+          },
+          {
+            title: 'Oddiy jumlalar',
+            content: 'I wake up at 7. I study at 9. I go to bed at 10. “at” soat bilan ishlatiladi, “on” kunlar bilan: on Monday.'
+          },
+          {
+            title: 'Mini mashq',
+            content: 'Bugungi rejangizni 5 ta jumlada inglizcha ayting. So\'ng ularni sekin o\'qib, keyin tezroq takrorlang.'
+          }
+        ],
+        quiz: [
+          {
+            question: '"Men soat 7 da uyg\'onaman" inglizchasi qaysi?',
+            options: [
+              { text: 'I wake up at 7.', isCorrect: true },
+              { text: 'I wake at 7 on.', isCorrect: false },
+              { text: 'I am wake up 7.', isCorrect: false }
+            ],
+            explanation: 'Soat bilan “at” ishlatiladi: at 7.'
+          }
+        ]
+      }
     }
   ],
   'math-101': [
@@ -310,6 +345,41 @@ export const MOCK_LESSONS = {
           }
         ]
       }
+    },
+    {
+      id: 'math-exclusive-l5',
+      course_id: 'math-101',
+      title: 'Eksklyuziv: Foiz (Percent) asoslari',
+      duration: '20 daqiqa',
+      level: 'Boshlang\'ich',
+      order_index: 5,
+      content: {
+        sections: [
+          {
+            title: 'Foiz nima?',
+            content: 'Foiz — 100 dan nechta qism. 10% = 10/100. 50% = yarim. 25% = chorak.'
+          },
+          {
+            title: 'Tez hisoblash',
+            content: '10% topish: sonni 10 ga bo\'ling. 5%: 10% ning yarmi. 20%: 10% ni 2 marta oling.'
+          },
+          {
+            title: 'Real misol',
+            content: '100 000 so\'mga 10% chegirma bo\'lsa, chegirma 10 000. Yangi narx 90 000 bo\'ladi.'
+          }
+        ],
+        quiz: [
+          {
+            question: '200 ning 10% nechaga teng?',
+            options: [
+              { text: '20', isCorrect: true },
+              { text: '10', isCorrect: false },
+              { text: '30', isCorrect: false }
+            ],
+            explanation: '10% = 1/10, 200/10 = 20.'
+          }
+        ]
+      }
     }
   ],
   'frontend-101': [
@@ -428,6 +498,41 @@ export const MOCK_LESSONS = {
           {
             title: 'Oddiy misol',
             content: 'const Button = ({ title }) => <button>{title}</button>; kabi yoziladi. Amalda button rangini props orqali boshqarish mumkin.'
+          }
+        ]
+      }
+    },
+    {
+      id: 'fe-exclusive-l5',
+      course_id: 'frontend-101',
+      title: 'Eksklyuziv: Accessibility (a11y) amaliy',
+      duration: '22 daqiqa',
+      level: 'Boshlang\'ich',
+      order_index: 5,
+      content: {
+        sections: [
+          {
+            title: 'Nega a11y kerak?',
+            content: 'Sayt hamma uchun qulay bo\'lishi kerak: klaviatura bilan boshqarish, screen reader, kontrast. Bu foydalanuvchi tajribasini yaxshilaydi.'
+          },
+          {
+            title: 'Semantik HTML',
+            content: '<button> tugma uchun, <a> havola uchun. Div bilan hamma narsani qilmaslik kerak — screen reader uchun semantika muhim.'
+          },
+          {
+            title: 'ARIA va fokus',
+            content: 'aria-label orqali aniq nom bering. Tab bilan yurib ko\'ring: fokus ko\'rinishi yo\'qolmasin, tartib mantiqli bo\'lsin.'
+          }
+        ],
+        quiz: [
+          {
+            question: 'Tugma uchun qaysi element to\'g\'ri?',
+            options: [
+              { text: '<button>', isCorrect: true },
+              { text: '<div>', isCorrect: false },
+              { text: '<span>', isCorrect: false }
+            ],
+            explanation: 'Interaktiv tugma uchun <button> semantik jihatdan to\'g\'ri.'
           }
         ]
       }

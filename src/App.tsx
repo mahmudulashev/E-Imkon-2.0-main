@@ -7,7 +7,6 @@ import CourseView from './pages/CourseView';
 import LessonView from './pages/LessonView';
 import Documentation from './pages/Documentation';
 import Profile from './pages/Profile';
-import AdminPanel from './pages/AdminPanel';
 import BusinessModel from './pages/BusinessModel';
 import AccessibilityPanel from './components/AccessibilityPanel';
 import AITutor from './components/AITutor';
@@ -126,7 +125,6 @@ const AppContent: React.FC<{
                 <Link to="/docs" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Yo'riqnoma</Link>
                 <Link to="/business" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Biznes model</Link>
                 <Link to="/profile" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Profil</Link>
-                <Link to="/admin" className="font-black text-lg uppercase tracking-widest hover:underline decoration-4 underline-offset-8">Admin</Link>
               </div>
               <button
                 type="button"
@@ -154,9 +152,6 @@ const AppContent: React.FC<{
             <Link to="/profile" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
               Profil
             </Link>
-            <Link to="/admin" className="block font-black uppercase tracking-widest" onClick={() => setIsMenuOpen(false)}>
-              Admin
-            </Link>
           </div>
         </div>
       </nav>
@@ -167,7 +162,6 @@ const AppContent: React.FC<{
           <Route path="/docs" element={<Documentation prefs={prefs} />} />
           <Route path="/business" element={<BusinessModel prefs={prefs} />} />
           <Route path="/profile" element={<Profile prefs={prefs} uid={uid} profile={profile} />} />
-          <Route path="/admin" element={<AdminPanel prefs={prefs} />} />
           <Route path="/courses/:subjectId" element={<CourseView prefs={prefs} uid={uid} profile={profile} setProfile={setProfile} />} />
           <Route path="/lesson/:lessonId" element={<LessonView prefs={prefs} uid={uid} />} />
         </Routes>
