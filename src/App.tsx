@@ -1,17 +1,23 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { HashRouter, Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import type { UserPreferences, UserProfile } from './types';
-import Home from './pages/Home';
-import CourseView from './pages/CourseView';
-import LessonView from './pages/LessonView';
-import Documentation from './pages/Documentation';
-import Profile from './pages/Profile';
-import BusinessModel from './pages/BusinessModel';
-import AccessibilityPanel from './components/AccessibilityPanel';
-import AITutor from './components/AITutor';
-import { generateSpeech, decode, decodeAudioData, playSoundCue } from './geminiService';
 import { getOrCreateLocalUid, loadLocalProfile, saveLocalProfile } from './localUserData';
+
+const Home = React.lazy(() => import('./pages/Home'));
+const CourseView = React.lazy(() => import('./pages/CourseView'));
+const LessonView = React.lazy(() => import('./pages/LessonView'));
+const Documentation = React.lazy(() => import('./pages/Documentation'));
+const Profile = React.lazy(() => import('./pages/Profile'));
+const BusinessModel = React.lazy(() => import('./pages/BusinessModel'));
+const AccessibilityPanel = React.lazy(() => import('./components/AccessibilityPanel'));
+const AITutor = React.lazy(() => import('./components/AITutor'));
+
+const PageFallback: React.FC = () => (
+  <div className="min-h-[40vh] flex items-center justify-center">
+    <div className="font-black text-2xl uppercase">Yuklanmoqda...</div>
+  </div>
+);
 
 const AppContent: React.FC<{ 
   prefs: UserPreferences; 
@@ -26,6 +32,14 @@ const AppContent: React.FC<{
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
   const lastSpokenText = useRef<string>("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showAITutor, setShowAITutor] = useState(false);
+  const [showAccessibility, setShowAccessibility] = useState(false);
+  const geminiModuleRef = useRef<Promise<typeof import('./geminiService')> | null>(null);
+
+  const loadGemini = () => {
+    if (!geminiModuleRef.current) geminiModuleRef.current = import('./geminiService');
+    return geminiModuleRef.current;
+  };
 
   const getCtx = async () => {
     if (!audioContextRef.current) {
@@ -48,10 +62,10 @@ const AppContent: React.FC<{
     if (!prefs.voiceSupport) return;
     stopGlobalAudio();
     try {
-      const ctx = await getCtx();
-      const base64 = await generateSpeech(text);
+      const [gemini, ctx] = await Promise.all([loadGemini(), getCtx()]);
+      const base64 = await gemini.generateSpeech(text);
       if (base64) {
-        const buf = await decodeAudioData(decode(base64), ctx);
+        const buf = await gemini.decodeAudioData(gemini.decode(base64), ctx);
         const source = ctx.createBufferSource();
         source.buffer = buf;
         source.connect(ctx.destination);
@@ -62,12 +76,43 @@ const AppContent: React.FC<{
   };
 
   useEffect(() => {
-    getCtx().then(ctx => playSoundCue('nav', ctx));
+    loadGemini()
+      .then((gemini) => getCtx().then((ctx) => gemini.playSoundCue('nav', ctx)))
+      .catch(() => {});
     const pageName = location.pathname === '/' ? 'Bosh sahifa' :
                      location.pathname.includes('lesson') ? 'Dars sahifasi' :
                      location.pathname.includes('course') ? 'Kurs sahifasi' : 'Sahifa';
     speakGlobal(pageName + " yuklandi.");
   }, [location.pathname]);
+
+  useEffect(() => {
+    const loadIdle = () => {
+      setShowAccessibility(true);
+      setShowAITutor(true);
+    };
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const id = (window as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number })
+        .requestIdleCallback(loadIdle, { timeout: 1500 });
+      return () => {
+        (window as Window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(id);
+      };
+    }
+
+    const t = setTimeout(loadIdle, 900);
+    return () => clearTimeout(t);
+  }, []);
+
+  const routeElements = useMemo(() => {
+    return {
+      home: <Home prefs={prefs} />,
+      docs: <Documentation prefs={prefs} />,
+      business: <BusinessModel prefs={prefs} />,
+      profile: <Profile prefs={prefs} uid={uid} profile={profile} />,
+      course: <CourseView prefs={prefs} uid={uid} profile={profile} setProfile={setProfile} />,
+      lesson: <LessonView prefs={prefs} uid={uid} />,
+    };
+  }, [prefs, uid, profile, setProfile]);
 
   useEffect(() => {
     const handleShortcuts = (e: KeyboardEvent) => {
@@ -156,18 +201,28 @@ const AppContent: React.FC<{
         </div>
       </nav>
       <main id="main-content" className="flex-grow max-w-7xl mx-auto w-full p-6 outline-none" tabIndex={-1}>
-        <Routes>
-          <Route path="/" element={<Home prefs={prefs} />} />
-          <Route path="/login" element={<Navigate to="/" replace />} />
-          <Route path="/docs" element={<Documentation prefs={prefs} />} />
-          <Route path="/business" element={<BusinessModel prefs={prefs} />} />
-          <Route path="/profile" element={<Profile prefs={prefs} uid={uid} profile={profile} />} />
-          <Route path="/courses/:subjectId" element={<CourseView prefs={prefs} uid={uid} profile={profile} setProfile={setProfile} />} />
-          <Route path="/lesson/:lessonId" element={<LessonView prefs={prefs} uid={uid} />} />
-        </Routes>
+        <Suspense fallback={<PageFallback />}>
+          <Routes>
+            <Route path="/" element={routeElements.home} />
+            <Route path="/login" element={<Navigate to="/" replace />} />
+            <Route path="/docs" element={routeElements.docs} />
+            <Route path="/business" element={routeElements.business} />
+            <Route path="/profile" element={routeElements.profile} />
+            <Route path="/courses/:subjectId" element={routeElements.course} />
+            <Route path="/lesson/:lessonId" element={routeElements.lesson} />
+          </Routes>
+        </Suspense>
       </main>
-      <AccessibilityPanel prefs={prefs} setPrefs={setPrefs} />
-      <AITutor />
+      {showAccessibility ? (
+        <Suspense fallback={null}>
+          <AccessibilityPanel prefs={prefs} setPrefs={setPrefs} />
+        </Suspense>
+      ) : null}
+      {showAITutor ? (
+        <Suspense fallback={null}>
+          <AITutor />
+        </Suspense>
+      ) : null}
     </div>
   );
 };
